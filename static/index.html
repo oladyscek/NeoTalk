@@ -1,0 +1,511 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+
+  <title>NeoTalk</title>
+
+  <style>
+
+    #new-chat-screen {
+      display: none;
+    }
+
+    #chats {
+      display: none;
+    }
+
+    #reg-screen {
+      display: none;
+    }
+
+    .screen {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 95vh;
+      color: #E0D0FF;
+    }
+
+    @keyframes flicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% {
+        text-shadow: 0 0 10px #8a2be2, 0 0 20px #8a2be2;
+      }
+      20%, 24%, 55% {
+        text-shadow: none;
+      }
+    }
+
+    .screen h1 {
+      animation: flicker 3s infinite;
+      font-size: 64px;
+      margin-bottom: 70px;
+    }
+
+    .screen h2 {
+      margin-top: 30px;
+      font-size: 10px;
+      color: #4f328a;
+    }
+
+    body {
+      animation: stars 20s linear infinite;
+      font-family: 'Press Start 2P', monospace;
+      background: #0D0221;
+      margin: 0;
+      background-image:
+        radial-gradient(2px 2px at 20% 30%, #8a2be2, transparent),
+        radial-gradient(1px 1px at 60% 70%, #E0D0FF, transparent),
+        radial-gradient(1px 1px at 80% 20%, #8a2be2, transparent),
+        radial-gradient(2px 2px at 40% 90%, #E0D0FF, transparent);
+      background-size: 200px 200px;
+    }
+
+    @keyframes stars {
+      from { background-position: 0 0; }
+      to   { background-position: 200px 0px; }
+    }
+
+    .screen input {
+      caret-color: #8a2be2;
+      font-family: 'Press Start 2P', monospace;
+      margin-bottom: 10px;
+      height: 30px;
+      width: 320px;
+      max-width: 90%;
+      background-color: #1A0B2E;
+      color: #E0D0FF;
+      border-color: #2e0777;
+    }
+
+    .screen input:focus {
+      outline: none;
+      border-color: #8a2be2;
+    }
+
+    .screen button {
+      font-family: 'Press Start 2P', monospace;
+      background-color: #1A0B2E;
+      color: #E0D0FF;
+      border-color: #2e0777;
+      margin-top: 20px;
+      font-size: 24px;
+      padding: 5px 60px;
+      box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5);
+      transition: 0.1s;
+    }
+
+    .screen button:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    /* ====== ЧАТЫ ====== */
+
+    #chats {
+      height: 100vh;
+    }
+
+    .chat button {
+      font-family: 'Press Start 2P', monospace;
+      background-color: #1A0B2E;
+      color: #E0D0FF;
+      border-color: #2e0777;
+      font-size: 30px;
+      padding: 5px 30px;
+      box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5);
+      transition: 0.1s;
+    }
+
+    .chat button:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      color: #E0D0FF;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1A0B2E;
+      border-right: 2px solid #2e0777;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 15px;
+      font-size: 12px;
+      border-bottom: 2px solid #2e0777;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #8a2be2;
+      /* ↓ Чтобы "Chats" и "+" стояли в одну строку: */
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Маленькая кнопка "+" в шапке сайдбара. */
+    .sidebar-header button {
+      font-family: 'Press Start 2P', monospace;
+      background-color: #0D0221;
+      color: #E0D0FF;
+      border: 2px solid #2e0777;
+      font-size: 14px;
+      padding: 4px 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 0 #0a0117;
+      transition: 0.1s;
+    }
+
+    .sidebar-header button:hover {
+      background-color: #2e0777;
+      box-shadow: 0 2px 0 #0a0117, 0 0 8px #8a2be2;
+    }
+
+    .sidebar-header button:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .chat-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .chat-list li {
+      padding: 12px 15px;
+      border-bottom: 1px solid #2e0777;
+      cursor: pointer;
+      font-size: 10px;
+      transition: background 0.15s;
+    }
+
+    .chat-list li:hover {
+      background: #2e0777;
+    }
+
+    .chat-list li.active {
+      background: #2e0777;
+      border-left: 3px solid #8a2be2;
+      padding-left: 12px;
+    }
+
+    .chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header {
+      padding: 15px;
+      border-bottom: 2px solid #2e0777;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #8a2be2;
+    }
+
+    .messages {
+      flex: 1;
+      list-style: none;
+      padding: 15px;
+      margin: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .messages li:first-child {
+      margin-top: auto;
+    }
+
+    .messages li {
+      max-width: 60%;
+      padding: 8px 12px;
+      border: 2px solid #2e0777;
+      background: #1A0B2E;
+      word-wrap: break-word;
+      font-size: 10px;
+      line-height: 1.6;
+    }
+
+    .messages .own {
+      /* ↑ СВОИ сообщения — с классом .own. */
+      margin-right: auto;
+      /* ↑ auto слева → прижимает блок ВПРАВО. */
+      border-color: #8a2be2;
+      box-shadow: 0 0 8px #8a2be2;
+    }
+
+    .messages .other {
+      /* ↑ ЧУЖИЕ сообщения. */
+      margin-right: auto;
+      /* ↑ auto справа → прижимает ВЛЕВО. */
+    }
+
+    .send {
+      display: flex;
+      gap: 10px;
+      padding: 15px;
+      border-top: 2px solid #2e0777;
+    }
+
+    .send input {
+      caret-color: #8a2be2;
+      font-family: 'Press Start 2P', monospace;
+      flex: 1;
+      height: 50px;
+      background-color: #1A0B2E;
+      color: #E0D0FF;
+      border-color: #2e0777;
+    }
+
+    .send input:focus {
+      outline: none;
+      border-color: #8a2be2;
+    }
+
+    /* Скрытые скроллбары */
+
+    .chat-list::-webkit-scrollbar,
+    .messages::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chat-list,
+    .messages {
+      scrollbar-width: none;
+    }
+
+  </style>
+
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <!-- ========== ЭКРАН ЛОГИНА ========== -->
+  <div class="screen" id="login-screen">
+    <h1>NeoTalk</h1>
+    <input placeholder="Name">
+    <input type="password" placeholder="Password">
+    <button>log in</button>
+    <button id="to-register">register</button>
+    <h2>forgot password? xd lol</h2>
+  </div>
+
+  <!-- ========== ЭКРАН РЕГИСТРАЦИИ ========== -->
+  <div class="screen" id="reg-screen">
+    <h1>NeoTalk</h1>
+    <input placeholder="Name">
+    <input type="password" placeholder="Password">
+    <input type="password" placeholder="Repeat password">
+    <button>register</button>
+    <button id="to-login">back to log in</button>
+  </div>
+
+  <!-- ========== ЭКРАН НОВОГО ЧАТА ========== -->
+  <div class="screen" id="new-chat-screen">
+    <h1>New chat</h1>
+    <input id="new-chat-input" placeholder="Username">
+    <button id="create-chat-btn">create</button>
+    <button id="cancel-chat-btn">back</button>
+  </div>
+
+  <!-- ========== ЭКРАН ЧАТА ========== -->
+  <div id="chats">
+    <div class="app">
+
+      <!-- САЙДБАР СЛЕВА -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <!-- ↑ Обёртка надписи и кнопки "+". -->
+          <span>Chats</span>
+          <button id="new-chat-btn">+</button>
+        </div>
+        <ul class="chat-list">
+          <li class="active" data-chat="alice">alice</li>
+          <li data-chat="bob">bob</li>
+          <li data-chat="team">#team</li>
+        </ul>
+      </aside>
+
+      <!-- ОБЛАСТЬ ЧАТА СПРАВА -->
+      <main class="chat">
+        <header class="chat-header">alice</header>
+
+        <ul class="messages"></ul>
+
+        <form class="send">
+          <input placeholder="message...">
+          <button class="">→</button>
+        </form>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // ---- ПЕРЕКЛЮЧЕНИЕ LOGIN ↔ REG ----
+
+    document.getElementById('to-register').onclick = () => {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('reg-screen').style.display = 'flex';
+    };
+
+    document.getElementById('to-login').onclick = () => {
+      document.getElementById('reg-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    };
+
+    // ---- ПЕРЕХОД В ЧАТ ----
+
+    const loginScreen   = document.getElementById('login-screen');
+    const regScreen     = document.getElementById('reg-screen');
+    const chatsScreen   = document.getElementById('chats');
+    const newChatScreen = document.getElementById('new-chat-screen');
+
+    const loginBtn    = loginScreen.querySelector('button:not(#to-register)');
+    const registerBtn = regScreen.querySelector('button:not(#to-login)');
+
+    function showChats() {
+      loginScreen.style.display = 'none';
+      regScreen.style.display   = 'none';
+      chatsScreen.style.display = 'block';
+    }
+
+    loginBtn.onclick    = showChats;
+    registerBtn.onclick = showChats;
+
+    // ---- КЛИКИ ПО ЧАТАМ И ОТПРАВКА СООБЩЕНИЙ ----
+
+    const chatList     = document.querySelector('.chat-list');
+    // ↑ Сам <ul>. Используется и для делегирования, и для добавления новых чатов.
+    const chatHeader   = document.querySelector('.chat-header');
+    const messagesList = document.querySelector('.messages');
+    const sendForm     = document.querySelector('.send');
+    const sendInput    = sendForm.querySelector('input');
+
+    // Переписки по ключу из data-chat.
+    const chatsData = {
+      alice: [
+        { text: 'alice: hi',           own: false },
+        { text: 'me: hi!',             own: true  },
+        { text: 'alice: how are you?', own: false },
+        { text: 'me: fine',            own: true  },
+      ],
+      bob: [
+        { text: 'bob: yo',  own: false },
+        { text: 'me: yo',   own: true  },
+      ],
+      team: [
+        { text: 'alex: hi all',  own: false },
+        { text: 'me: hello',     own: true  },
+        { text: 'kate: hey',     own: false },
+      ],
+    };
+
+    function renderMessages(key) {
+      messagesList.innerHTML = '';
+
+      const msgs = chatsData[key] || [];
+      // ↑ Если чат новый — массив пустой. Без || [] — упадёт.
+
+      msgs.forEach(m => {
+        const li = document.createElement('li');
+        li.className = m.own ? 'own' : 'other';
+        li.textContent = m.text;
+        messagesList.appendChild(li);
+      });
+
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    function selectChat(li) {
+      document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
+      // ↑ Ищем ВСЕ <li> каждый раз, а не через старый снимок.
+      li.classList.add('active');
+      chatHeader.textContent = li.textContent;
+      renderMessages(li.dataset.chat);
+    }
+
+    // Делегирование событий:
+    // обработчик на <ul>, а не на каждом <li>. Работает и для новых чатов.
+    chatList.onclick = (e) => {
+      if (e.target.tagName === 'LI') {
+        selectChat(e.target);
+      }
+    };
+
+    sendForm.onsubmit = (e) => {
+      e.preventDefault();
+      const text = sendInput.value.trim();
+      if (!text) return;
+
+      const active = document.querySelector('.chat-list li.active');
+      const key    = active.dataset.chat;
+
+      chatsData[key] = chatsData[key] || [];
+      // ↑ Защита от undefined на случай нового чата.
+      chatsData[key].push({ text: 'me: ' + text, own: true });
+      renderMessages(key);
+
+      sendInput.value = '';
+      sendInput.focus();
+    };
+
+    // ---- СОЗДАНИЕ НОВОГО ЧАТА ----
+
+    const newChatBtn    = document.getElementById('new-chat-btn');
+    const newChatInput  = document.getElementById('new-chat-input');
+    const createChatBtn = document.getElementById('create-chat-btn');
+    const cancelChatBtn = document.getElementById('cancel-chat-btn');
+
+    newChatBtn.onclick = () => {
+      chatsScreen.style.display   = 'none';
+      newChatScreen.style.display = 'flex';
+      newChatInput.value = '';
+      newChatInput.focus();
+    };
+
+    cancelChatBtn.onclick = () => {
+      newChatScreen.style.display = 'none';
+      chatsScreen.style.display   = 'block';
+    };
+
+    createChatBtn.onclick = () => {
+      const name = newChatInput.value.trim();
+      if (!name) return;
+
+      chatsData[name] = [];
+      // ↑ Пустой массив сообщений для нового чата.
+
+      const li = document.createElement('li');
+      li.textContent  = name;
+      li.dataset.chat = name;
+      chatList.appendChild(li);
+      // ↑ onclick НЕ вешаем — работает делегирование.
+
+      selectChat(li);
+      // ↑ Сразу открыть новый чат.
+
+      newChatScreen.style.display = 'none';
+      chatsScreen.style.display   = 'block';
+    };
+
+    renderMessages('alice');
+  </script>
+
+</body>
+</html>
