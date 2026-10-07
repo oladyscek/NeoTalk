@@ -1,0 +1,19 @@
+# база данных — не коммитим
+*.db
+data.db
+
+# бинарники
+*.exe
+server
+
+*.md
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+materials/
