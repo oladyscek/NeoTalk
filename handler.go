@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"sync"
 	"encoding/json"
+	"sync"
 
 	//"golang.org/x/crypto/bcrypt"
 	"github.com/gorilla/websocket"
@@ -14,15 +14,16 @@ import (
 )
 
 type Packet struct {
-    Type     string          `json:"type"`
-    From     string          `json:"from,omitempty"`
-    To       string          `json:"to,omitempty"`
-    Text     string          `json:"text,omitempty"`
-    Name     string          `json:"name,omitempty"`
-    Password string          `json:"password,omitempty"`
-    Answer   string          `json:"answer,omitempty"`
-    ChatID   int             `json:"chatId,omitempty"`
-    Data     json.RawMessage `json:"data,omitempty"`   
+	Type     string          `json:"type"`
+	From     string          `json:"from,omitempty"`
+	To       string          `json:"to,omitempty"`
+	Text     string          `json:"text,omitempty"`
+	Name     string          `json:"name,omitempty"`
+	Password string          `json:"password,omitempty"`
+	Answer   string          `json:"answer,omitempty"`
+	ChatID   int             `json:"chatId"`
+	IsGroup  bool            `json:"IsGroup"`
+	Data     json.RawMessage `json:"data,omitempty"`
 }
 
 var db *sql.DB
@@ -43,7 +44,6 @@ func addUserConn(conn *websocket.Conn, name string) {
 	connToName[conn] = name
 	mu.Unlock()
 }
-
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -95,7 +95,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		case "getHistory":
 			continue
 		case "createChat":
-			continue
+			createChatWS(conn, &req)
 		case "getChats":
 			continue
 		}

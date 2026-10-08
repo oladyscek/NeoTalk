@@ -75,43 +75,65 @@ func loginWS(conn *websocket.Conn, req *Packet) {
 	conn.WriteMessage(websocket.TextMessage, data)
 }
 
-
-func sendMsgWS(conn *websocket.Conn, req *Packet) { // a lot of bugs here, idk where i am too tierd
-	mu.Lock()
-	sender := connToName[conn]
-	recipientConn, _ := clients[req.To]
-	mu.Unlock()
-
-	if sender == "" {
-		data, err := json.Marshal(Packet{Type: "msgStatus", Answer: "not logged in"})
-
-		if err != nil {
-			log.Println("JSON MARSHAL ERROR:", err)
-			return
-		}
-
-		err = conn.WriteMessage(websocket.TextMessage, data)
-
-		if err != nil {
-			log.Println("send message error:", err)
-		}
-
-		return
-	}
-
-	sendMsg(req)
-
-	answer, err := json.Marshal(Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
+func sendPacket(conn *websocket.Conn, req Packet) {
+	answer, err := json.Marshal(req)
 
 	if err != nil {
 		log.Println("JSON MARSHAL ERROR:", err)
 		return
 	}
 
-	err = recipientConn.WriteMessage(websocket.TextMessage, answer)
+	err = conn.WriteMessage(websocket.TextMessage, answer)
 
 	if err != nil {
 		log.Println("send message error:", err)
 		return
 	}
+}
+
+func sendMsgWS(conn *websocket.Conn, req *Packet) {
+	mu.Lock()
+	sender := connToName[conn]
+	recipientConn, ok := clients[req.To]
+	mu.Unlock()
+
+	if sender == "" {
+		sendPacket(conn, Packet{Type: "msgStatus", Answer: "not logged in"})
+		return
+	}
+
+	if sender == req.To {
+		sendPacket(conn, Packet{Type: "msgStatus", Answer: "cannot send to yourself"})
+		return
+	}
+
+	sendMsg(req, sender) //send to db
+
+	if !ok {
+		sendPacket(conn, Packet{Type: "msgStatus", Answer: "user offline"})
+		return
+	}
+
+	sendPacket(recipientConn, Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
+	sendPacket(conn, Packet{Type: "msgStatus", Answer: "ok"})
+}
+
+func createChatWS(conn *websocket.Conn, req *Packet) {
+	mu.Lock()
+	creator := connToName[conn]
+	mu.Unlock()
+
+	if creator == "" {
+		sendPacket(conn, Packet{Type: "msgStatus", Answer: "not logged in"})
+		return
+	}
+
+	ok, id := createChat(req, creator)
+
+	if ok {
+		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "ok", ChatID: int(id)})
+	} else {
+		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
+	}
+
 }

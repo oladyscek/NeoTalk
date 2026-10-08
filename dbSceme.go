@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+
 	//"net/http"
 	//"sync"
 	//"encoding/json"
@@ -46,6 +47,7 @@ func createTables() {
 		CREATE TABLE if not EXISTS chat_members (
 		chat_id INTEGER NOT NULL,
 		user_id INTEGER NOT NULL,
+		is_admin bool NOT NULL DEFAULT 0
 		PRIMARY KEY (chat_id, user_id))
 	`)
 
@@ -54,14 +56,12 @@ func createTables() {
 	}
 
 	_, err = db.Exec(`--sql
-	CREATE TABLE messages (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_id    INTEGER NOT NULL,
-    sender_id  INTEGER NOT NULL,
-    msg       TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
-
-	CREATE INDEX idx_messages_chat_time ON messages(chat_id, created_at DESC)
+		CREATE TABLE if not EXISTS messages (
+		id         INTEGER PRIMARY KEY AUTOINCREMENT,
+		chat_id    INTEGER NOT NULL,
+		sender_id  INTEGER NOT NULL,
+		msg        TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
 	`)
 
 	if err != nil {
