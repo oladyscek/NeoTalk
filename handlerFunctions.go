@@ -94,7 +94,7 @@ func sendPacket(conn *websocket.Conn, req Packet) {
 func sendMsgWS(conn *websocket.Conn, req *Packet) {
 	mu.Lock()
 	sender := connToName[conn]
-	recipientConn, ok := clients[req.To]
+	recipientConn, _ := clients[req.To]
 	mu.Unlock()
 
 	if sender == "" {
@@ -107,15 +107,57 @@ func sendMsgWS(conn *websocket.Conn, req *Packet) {
 		return
 	}
 
-	sendMsg(req, sender) //send to db
+	if !req.IsGroup {
 
-	if !ok {
-		sendPacket(conn, Packet{Type: "msgStatus", Answer: "user offline"})
-		return
+		_, ok := sendMsg(req, sender) //send to db, could be found in dbFunctions
+
+		if !ok {
+			sendPacket(conn, Packet{Type: "msgStatus", Answer: "failed"})
+			return
+		}
+
+		sendPacket(recipientConn, Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
+		sendPacket(conn, Packet{Type: "msgStatus", Answer: "ok"})
+	} else {
+		chatID, ok := sendMsg(req, sender)
+
+		if !ok {
+			sendPacket(conn, Packet{Type: "msgStatus", Answer: "failed"})
+			return
+		}
+
+		rows, err := db.Query(`--sql
+        SELECT u.name FROM users u
+        JOIN chat_members cm ON cm.user_id = u.id
+        WHERE cm.chat_id = ? AND u.name != ?
+		`, chatID, sender)
+		if err != nil {
+			log.Println("broadcast query error:", err)
+			return
+		}
+		defer rows.Close()
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		for rows.Next() {
+			var name string
+			if err := rows.Scan(&name); err != nil {
+				log.Println("scan error:", err)
+				continue
+			}
+
+			if resepientConn, ok := clients[name]; ok {
+				// онлайн — шлём сейчас
+				sendPacket(resepientConn, Packet{
+					Type:   "incomedMsg",
+					From:   sender,
+					ChatID: int(chatID),
+					Text:   req.Text,
+				})
+			}
+		}
 	}
-
-	sendPacket(recipientConn, Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
-	sendPacket(conn, Packet{Type: "msgStatus", Answer: "ok"})
 }
 
 func createChatWS(conn *websocket.Conn, req *Packet) {
@@ -128,10 +170,10 @@ func createChatWS(conn *websocket.Conn, req *Packet) {
 		return
 	}
 
-	ok, id := createChat(req, creator)
+	ok, id := createChat(req, creator) // adding to db, could be found in dbFunctions
 
 	if ok {
-		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "ok", ChatID: int(id)})
+		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "ok", ChatID: id})
 	} else {
 		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
 	}

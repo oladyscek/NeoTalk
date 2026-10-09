@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	createTables()
+	createTables() // could be found in dbSceme
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/ws", handler)
 
