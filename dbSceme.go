@@ -4,12 +4,6 @@ import (
 	"database/sql"
 	"log"
 
-	//"net/http"
-	//"sync"
-	//"encoding/json"
-
-	//"golang.org/x/crypto/bcrypt"
-	//"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
 

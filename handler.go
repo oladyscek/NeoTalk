@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"sync"
 
-	//"golang.org/x/crypto/bcrypt"
 	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
@@ -93,11 +92,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		case "sendMsg":
 			sendMsgWS(conn, &req)
 		case "getHistory":
-			continue
+			getHistoryWS(conn, &req)
 		case "createChat":
 			createChatWS(conn, &req)
 		case "getChats":
-			continue
+			getChatsWS(conn)
 		}
 	}
 }

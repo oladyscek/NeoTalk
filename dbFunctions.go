@@ -5,12 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
-	//"net/http"
-	//"sync"
-	//"encoding/json"
-
 	"golang.org/x/crypto/bcrypt"
-	//"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
 
@@ -323,4 +318,129 @@ func sendMsg(req *Packet, sender string) (int64, bool) {
 			return -1, false
 		}
 	}
+}
+
+type ChatFormat struct {
+	ChatName string `json:"chatName"`
+	ID       int    `json:"id"`
+	IsGroup  bool   `json:"isGroup"`
+}
+
+func getChats(sender string) ([]ChatFormat, bool) {
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ?`, sender).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	data, err := db.Query(`--sql
+		SELECT c.id,
+		COALESCE(c.chatname, (
+			SELECT u.name FROM users u
+			JOIN chat_members cm2 ON cm2.user_id = u.id
+			WHERE cm2.chat_id = c.id AND u.id != ?
+			LIMIT 1
+		)) AS name,
+		c.is_group
+	FROM chats c
+	JOIN chat_members cm ON cm.chat_id = c.id
+	WHERE cm.user_id = ?`, userId, userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	defer data.Close()
+
+	var results []ChatFormat
+
+	for data.Next() {
+		var c ChatFormat
+		if err := data.Scan(&c.ID, &c.ChatName, &c.IsGroup); err != nil {
+			log.Println("scan error:", err)
+			continue
+		}
+		results = append(results, c)
+	}
+
+	if err := data.Err(); err != nil {
+		log.Println("rows error:", err)
+		return nil, false
+	}
+
+	return results, true
+}
+
+type HistoryFormat struct {
+	Message string `json:"message"`
+	Time    string `json:"time"`
+	Sender  string `json:"sender"`
+}
+
+func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.ChatID = id of second user or group
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ?`, sender).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	var isMember int
+
+	err = db.QueryRow(`--sql
+    SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)
+	`, req.ChatID, userId).Scan(&isMember)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+	if isMember != 1 {
+		log.Println("user not in chat:", req.ChatID)
+		return nil, false
+	}
+
+	data, err := db.Query(`--sql
+	SELECT m.msg, m.created_at u.name from messages m 
+	JOIN users u ON u.id = m.sender_id  
+	where m.chat_id = ?
+	ORDER BY created_at DESC
+	LIMIT 100`, req.ChatID)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	defer data.Close()
+
+	var results []HistoryFormat
+
+	for data.Next() {
+		var c HistoryFormat
+		if err := data.Scan(&c.Message, &c.Time, &c.Sender); err != nil {
+			log.Println("scan error:", err)
+			continue
+		}
+		results = append(results, c)
+	}
+
+	if err := data.Err(); err != nil {
+		log.Println("rows error:", err)
+		return nil, false
+	}
+
+	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 { // reverse the slice 
+		results[i], results[j] = results[j], results[i]
+	}
+
+	return results, true
 }

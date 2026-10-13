@@ -147,8 +147,7 @@ func sendMsgWS(conn *websocket.Conn, req *Packet) {
 				continue
 			}
 
-			if resepientConn, ok := clients[name]; ok {
-				// онлайн — шлём сейчас
+			if resepientConn, ok := clients[name]; ok { // if user online send by websocket
 				sendPacket(resepientConn, Packet{
 					Type:   "incomedMsg",
 					From:   sender,
@@ -177,5 +176,60 @@ func createChatWS(conn *websocket.Conn, req *Packet) {
 	} else {
 		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
 	}
+}
 
+func getChatsWS(conn *websocket.Conn) {
+	mu.Lock()
+	sender, ok := connToName[conn]
+	mu.Unlock()
+
+	if !ok {
+		sendPacket(conn, Packet{Type: "getChatStatus", Answer: "not logged in"})
+		return
+	}
+
+	list, ok := getChats(sender)
+
+	if !ok {
+		sendPacket(conn, Packet{Type: "getChatStatus", Answer: "failed"})
+		return
+	}
+
+	data, err := json.Marshal(list)
+
+	if err != nil {
+		log.Println(err)
+		sendPacket(conn, Packet{Type: "getChatStatus", Answer: "failed"})
+		return
+	}
+
+	sendPacket(conn, Packet{Type: "getChatStatus", Answer: "ok", Data: data})
+}
+
+func getHistoryWS(conn *websocket.Conn, req *Packet) {
+	mu.Lock()
+	sender, ok := connToName[conn]
+	mu.Unlock()
+
+	if !ok {
+		sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "not logged in"})
+		return
+	}
+
+	list, ok := getHistory(req, sender)
+
+	if !ok {
+		sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "failed"})
+		return
+	}
+
+	data, err := json.Marshal(list)
+
+	if err != nil {
+		log.Println(err)
+		sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "failed"})
+		return
+	}
+
+	sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "ok", Data: data})
 }
