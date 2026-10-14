@@ -8,7 +8,8 @@ import (
 )
 
 func createTables() {
-	db, err := sql.Open("sqlite", "database.db")
+	var err error
+	db, err = sql.Open("sqlite", "database.db")
 
 	if err != nil {
 		log.Fatal(err)
@@ -41,7 +42,7 @@ func createTables() {
 		CREATE TABLE if not EXISTS chat_members (
 		chat_id INTEGER NOT NULL,
 		user_id INTEGER NOT NULL,
-		is_admin bool NOT NULL DEFAULT 0
+		is_admin bool NOT NULL DEFAULT 0,
 		PRIMARY KEY (chat_id, user_id))
 	`)
 
@@ -63,7 +64,7 @@ func createTables() {
 	}
 
 	_, err = db.Exec(`--sql
-	CREATE INDEX idx_messages_chat_time ON messages(chat_id, created_at DESC)
+	CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at DESC)
 	`)
 
 	if err != nil {

@@ -279,7 +279,7 @@ func sendMsg(req *Packet, sender string) (int64, bool) {
 				log.Println(err)
 				return -1, false
 			}
-			return -1, true
+			return int64(existingChatID), true
 		} else { // if second user not exists
 			return -1, false
 		}
@@ -361,16 +361,18 @@ func getChats(sender string) ([]ChatFormat, bool) {
 
 	for data.Next() {
 		var c ChatFormat
-		if err := data.Scan(&c.ID, &c.ChatName, &c.IsGroup); err != nil {
+		var isGroupInt int
+		if err := data.Scan(&c.ID, &c.ChatName, &isGroupInt); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
+		c.IsGroup = isGroupInt == 1
 		results = append(results, c)
-	}
 
-	if err := data.Err(); err != nil {
-		log.Println("rows error:", err)
-		return nil, false
+		if err := data.Err(); err != nil {
+			log.Println("rows error:", err)
+			return nil, false
+		}
 	}
 
 	return results, true
@@ -409,7 +411,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 	}
 
 	data, err := db.Query(`--sql
-	SELECT m.msg, m.created_at u.name from messages m 
+	SELECT m.msg, m.created_at, u.name from messages m 
 	JOIN users u ON u.id = m.sender_id  
 	where m.chat_id = ?
 	ORDER BY created_at DESC
@@ -438,7 +440,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		return nil, false
 	}
 
-	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 { // reverse the slice 
+	for i, j := 0, len(results)-1; i < j; i, j = i+1, j-1 { // reverse the slice
 		results[i], results[j] = results[j], results[i]
 	}
 

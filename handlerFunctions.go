@@ -17,23 +17,9 @@ func regWS(conn *websocket.Conn, req *Packet) {
 	ok := reg(req.Name, req.Password)
 
 	if ok {
-		ans, err := json.Marshal(Packet{Type: "regStatus", Answer: "ok"})
-
-		if err != nil {
-			log.Println("JSON MARSHAL ERROR:", err)
-			return
-		}
-
-		conn.WriteMessage(websocket.TextMessage, ans)
+		sendPacket(conn, Packet{Type: "regStatus", Answer: "ok"})
 	} else {
-		ans, err := json.Marshal(Packet{Type: "regStatus", Answer: "username busy"})
-
-		if err != nil {
-			log.Println("JSON MARSHAL ERROR:", err)
-			return
-		}
-
-		conn.WriteMessage(websocket.TextMessage, ans)
+		sendPacket(conn, Packet{Type: "regStatus", Answer: "username busy"})
 	}
 }
 
@@ -42,12 +28,7 @@ func loginWS(conn *websocket.Conn, req *Packet) {
 	ok := login(req.Name, req.Password)
 
 	if !ok {
-		data, err := json.Marshal(Packet{Type: "loginStatus", Answer: "denied"})
-		if err != nil {
-			log.Println("JSON MARSHAL ERROR:", err)
-			return
-		}
-		conn.WriteMessage(websocket.TextMessage, data)
+		sendPacket(conn, Packet{Type: "loginStatus", Answer: "denied"})
 		return
 	}
 
@@ -56,23 +37,13 @@ func loginWS(conn *websocket.Conn, req *Packet) {
 	mu.Unlock()
 
 	if busy {
-		data, err := json.Marshal(Packet{Type: "loginStatus", Answer: "already online"})
-		if err != nil {
-			log.Println("JSON MARSHAL ERROR:", err)
-			return
-		}
-		conn.WriteMessage(websocket.TextMessage, data)
+		sendPacket(conn, Packet{Type: "loginStatus", Answer: "already online"})
 		return
 	}
 
 	addUserConn(conn, req.Name)
 
-	data, err := json.Marshal(Packet{Type: "loginStatus", Answer: "ok"})
-	if err != nil {
-		log.Println("JSON MARSHAL ERROR:", err)
-		return
-	}
-	conn.WriteMessage(websocket.TextMessage, data)
+	sendPacket(conn, Packet{Type: "loginStatus", Answer: "ok"})
 }
 
 func sendPacket(conn *websocket.Conn, req Packet) {
@@ -116,7 +87,9 @@ func sendMsgWS(conn *websocket.Conn, req *Packet) {
 			return
 		}
 
-		sendPacket(recipientConn, Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
+		if recipientConn != nil {
+			sendPacket(recipientConn, Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
+		}
 		sendPacket(conn, Packet{Type: "msgStatus", Answer: "ok"})
 	} else {
 		chatID, ok := sendMsg(req, sender)
@@ -147,8 +120,8 @@ func sendMsgWS(conn *websocket.Conn, req *Packet) {
 				continue
 			}
 
-			if resepientConn, ok := clients[name]; ok { // if user online send by websocket
-				sendPacket(resepientConn, Packet{
+			if recipientConn, ok := clients[name]; ok { // if user online send by websocket
+				sendPacket(recipientConn, Packet{
 					Type:   "incomedMsg",
 					From:   sender,
 					ChatID: int(chatID),

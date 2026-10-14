@@ -21,7 +21,7 @@ type Packet struct {
 	Password string          `json:"password,omitempty"`
 	Answer   string          `json:"answer,omitempty"`
 	ChatID   int             `json:"chatId"`
-	IsGroup  bool            `json:"IsGroup"`
+	IsGroup  bool            `json:"isGroup"`
 	Data     json.RawMessage `json:"data,omitempty"`
 }
 
@@ -97,6 +97,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			createChatWS(conn, &req)
 		case "getChats":
 			getChatsWS(conn)
+		default:
+			log.Println("unknown type:", req.Type)
 		}
 	}
 }
