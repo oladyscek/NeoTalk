@@ -1,0 +1,7 @@
+data/
+*.db
+.git/
+.gitignore
+.vscode/
+README.md
+*.md

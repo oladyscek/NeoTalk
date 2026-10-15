@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # ===== ТВОЙ GO-СЕРВЕР =====
+  app:
+    build: .
+    # ↑ "Собери образ из Dockerfile в этой же папке".
+    restart: unless-stopped
+    # ↑ Автоматически перезапускается, если упал. Но не при `docker compose down`.
+    volumes:
+      - ./data:/app/data
+      # ↑ Пробрасываем папку ./data с сервера в /app/data контейнера.
+      # Тут будет database.db. Данные переживают перезапуск.
+    environment:
+      - DB_PATH=/app/data/database.db
+      # ↑ Путь к базе. Пока не используется, но пригодится.
+
+  # ===== CADDY (HTTPS + прокси) =====
+  caddy:
+    image: caddy:2-alpine
+    # ↑ Официальный образ Caddy. Готовый, ничего собирать не надо.
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # ↑ HTTP — нужен для проверки домена и редиректа на HTTPS.
+      - "443:443"
+      # ↑ HTTPS — основной порт.
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      # ↑ Твой конфиг Caddyfile кладём внутрь контейнера.
+      - caddy_data:/data
+      # ↑ Сертификаты Let's Encrypt сохраняются здесь. Иначе Caddy будет
+      # запрашивать новые каждый раз, а Let's Encrypt ограничивает частоту.
+      - caddy_config:/config
+      # ↑ Внутренняя конфигурация Caddy.
+
+volumes:
+  caddy_data:
+  caddy_config:
+  # ↑ Docker создаст эти volume автоматически.
