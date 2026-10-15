@@ -189,7 +189,8 @@
   const chatsById = {};   // chatId -> { id, chatName, isGroup }
 
   // ================== WEBSOCKET ==================
-  const ws = new WebSocket(`ws://${location.host}/ws`);
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
   ws.onopen    = () => console.log('ws connected');
   ws.onclose   = () => console.log('ws closed');
   ws.onerror   = (e) => console.error('ws error', e);

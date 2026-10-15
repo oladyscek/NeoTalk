@@ -3,12 +3,19 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	_ "modernc.org/sqlite"
 )
 
 func createTables() {
 	var err error
+
+	path := os.Getenv("DB_PATH")
+    if path == "" {
+        path = "database.db" 
+    }
+
 	db, err = sql.Open("sqlite", "database.db")
 
 	if err != nil {
