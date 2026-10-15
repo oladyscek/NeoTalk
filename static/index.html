@@ -335,7 +335,12 @@
           alert('create chat: ' + p.answer);
         }
         break;
+      case 'newChat':
+        // кто-то создал с нами чат — перечитать список
+        send({ type: 'getChats' });
+        break;
     }
+    
   };
 
   // ================== CHAT LIST ==================

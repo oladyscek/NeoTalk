@@ -135,10 +135,11 @@ func sendMsgWS(conn *websocket.Conn, req *Packet) {
 func createChatWS(conn *websocket.Conn, req *Packet) {
 	mu.Lock()
 	creator := connToName[conn]
+	recipientConn, exist := clients[req.To]
 	mu.Unlock()
 
 	if creator == "" {
-		sendPacket(conn, Packet{Type: "msgStatus", Answer: "not logged in"})
+		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "not logged in"})
 		return
 	}
 
@@ -146,6 +147,28 @@ func createChatWS(conn *websocket.Conn, req *Packet) {
 
 	if ok {
 		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "ok", ChatID: id})
+
+		if !req.IsGroup {
+			if exist {
+				sendPacket(recipientConn, Packet{Type: "newChat", ChatID: id})
+			}
+		} else {
+			var users []string // group members except creator
+			err := json.Unmarshal(req.Data, &users)
+
+			if err != nil {
+				sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
+				return
+			}
+			for _, user := range users {
+				recipientConn, exist := clients[user]
+
+				if exist {
+					sendPacket(recipientConn, Packet{Type: "newChat", ChatID: id})
+				}
+			}
+		}
+
 	} else {
 		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
 	}
