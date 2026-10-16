@@ -60,7 +60,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if name != "" {
 			delete(clients, name)
 			delete(connToName, conn)
-			log.Println("отключился:", name)
+			log.Println("disconnected:", name)
 		}
 		mu.Unlock()
 	}()

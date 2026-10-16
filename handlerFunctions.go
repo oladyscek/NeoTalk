@@ -17,7 +17,9 @@ func regWS(conn *websocket.Conn, req *Packet) {
 	ok := reg(req.Name, req.Password)
 
 	if ok {
+		addUserConn(conn, req.Name) //auto logun
 		sendPacket(conn, Packet{Type: "regStatus", Answer: "ok"})
+
 	} else {
 		sendPacket(conn, Packet{Type: "regStatus", Answer: "username busy"})
 	}
