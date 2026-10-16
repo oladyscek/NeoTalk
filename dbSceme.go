@@ -16,7 +16,7 @@ func createTables() {
         path = "database.db" 
     }
 
-	db, err = sql.Open("sqlite", "database.db")
+	db, err = sql.Open("sqlite", path)
 
 	if err != nil {
 		log.Fatal(err)
