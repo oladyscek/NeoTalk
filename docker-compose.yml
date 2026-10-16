@@ -12,8 +12,7 @@ services:
       # ↑ Пробрасываем папку ./data с сервера в /app/data контейнера.
       # Тут будет database.db. Данные переживают перезапуск.
     environment:
-      - DB_PATH=/app/data/database.db
-      # ↑ Путь к базе. Пока не используется, но пригодится.
+      - DB_PATH=/app/data/database.db   # ← путь для прод
 
   # ===== CADDY (HTTPS + прокси) =====
   caddy:

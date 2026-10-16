@@ -297,7 +297,7 @@
 
       case 'regStatus':
         if (p.answer === 'ok') {
-          myName = loginNameInput.value.trim();
+          myName = regNameInput.value.trim();
           send({ type: 'getChats' });
           showChats();
         } else {
