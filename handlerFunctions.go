@@ -1,13 +1,9 @@
 package main
 
 import (
-	//"database/sql"
 	"log"
-	//"net/http"
-	//"sync"
 	"encoding/json"
 
-	//"golang.org/x/crypto/bcrypt"
 	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
@@ -18,7 +14,13 @@ func regWS(conn *websocket.Conn, req *Packet) {
 
 	if ok {
 		addUserConn(conn, req.Name) //auto logun
-		sendPacket(conn, Packet{Type: "regStatus", Answer: "ok"})
+		token, err := addToken(req.Name)
+
+		if err != nil {
+			sendPacket(conn, Packet{Type: "regStatus", Answer: "failed"})
+		}
+
+		sendPacket(conn, Packet{Type: "regStatus", Answer: "ok", Token: token})
 
 	} else {
 		sendPacket(conn, Packet{Type: "regStatus", Answer: "username busy"})
@@ -34,18 +36,30 @@ func loginWS(conn *websocket.Conn, req *Packet) {
 		return
 	}
 
+	var oldConn *websocket.Conn
+
 	mu.Lock()
-	_, busy := clients[req.Name]
+	if c, busy := clients[req.Name]; busy {
+		oldConn = c
+		delete(connToName, c) // old session
+	}
+	clients[req.Name] = conn // making new session
+	connToName[conn] = req.Name
 	mu.Unlock()
 
-	if busy {
-		sendPacket(conn, Packet{Type: "loginStatus", Answer: "already online"})
+	if oldConn != nil {
+		oldConn.Close()
+		log.Println("kicked old session for:", req.Name)
+	}
+
+	token, err := addToken(req.Name)
+
+	if err != nil {
+		sendPacket(conn, Packet{Type: "loginStatus", Answer: "failed"})
 		return
 	}
 
-	addUserConn(conn, req.Name)
-
-	sendPacket(conn, Packet{Type: "loginStatus", Answer: "ok"})
+	sendPacket(conn, Packet{Type: "loginStatus", Answer: "ok", Token: token})
 }
 
 func sendPacket(conn *websocket.Conn, req Packet) {
@@ -230,4 +244,29 @@ func getHistoryWS(conn *websocket.Conn, req *Packet) {
 	}
 
 	sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "ok", Data: data})
+}
+
+func authWS(conn *websocket.Conn, req *Packet) {
+	name, ok := authCheck(req.Token)
+
+	if ok {
+		ok = updateToken(req.Token)
+
+		var oldConn *websocket.Conn
+
+		mu.Lock()
+		if c, busy := clients[name]; busy {
+			oldConn = c
+			delete(connToName, c) // old session
+		}
+		clients[name] = conn // making new session
+		connToName[conn] = name
+		mu.Unlock()
+
+		oldConn.Close()
+
+		sendPacket(conn, Packet{Type: "authStatus", Answer: "ok", Name: name})
+	} else {
+		sendPacket(conn, Packet{Type: "authStatus", Answer: "denied"})
+	}
 }

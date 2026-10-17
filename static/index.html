@@ -167,8 +167,11 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <span>Chats</span>
-          <button id="new-chat-btn">+</button>
-        </div>
+            <div>
+              <button id="new-chat-btn">+</button>
+              <button id="logout-btn">×</button>
+            </div>
+          </div>
         <ul class="chat-list"><!-- заполняется из сервера --></ul>
       </aside>
 
@@ -189,10 +192,22 @@
   let currentChatId = null;
   const chatsById = {};   // chatId -> { id, chatName, isGroup }
 
-  // ================== WEBSOCKET ==================
+    // ================== WEBSOCKET ==================
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
-  ws.onopen    = () => console.log('ws connected');
+
+  // Единый обработчик открытия
+  ws.onopen = () => {
+      console.log('ws connected');
+      
+      // Проверяем токен прямо здесь
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
+          console.log('trying auto-auth');
+          send({ type: 'auth', token: savedToken });
+      }
+  };
+
   ws.onclose   = () => console.log('ws closed');
   ws.onerror   = (e) => console.error('ws error', e);
 
@@ -285,9 +300,24 @@
     console.log('<<', p);
 
     switch (p.type) {
+      case 'authStatus':
+        if (p.answer === 'ok') {
+            myName = p.name; // ← сервер пришлет имя, мы его сохраним
+            send({ type: 'getChats' });
+            showChats();
+        } else {
+            // токен протух или неверный
+            localStorage.removeItem('token');
+            console.log('auto-auth failed:', p.answer);
+        }
+        break;
+
       case 'loginStatus':
         if (p.answer === 'ok') {
           myName = loginNameInput.value.trim();
+
+          localStorage.setItem('token', p.token);
+
           send({ type: 'getChats' });
           showChats();
         } else {
@@ -298,6 +328,9 @@
       case 'regStatus':
         if (p.answer === 'ok') {
           myName = regNameInput.value.trim();
+
+          localStorage.setItem('token', p.token);
+
           send({ type: 'getChats' });
           showChats();
         } else {

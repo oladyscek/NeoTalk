@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 
@@ -445,4 +447,62 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 	}
 
 	return results, true
+}
+
+func generateToken() string {
+	b := make([]byte, 32) // 32 байта = 64 hex-символа
+	rand.Read(b)          // заполняем случайными байтами
+	return hex.EncodeToString(b)
+}
+
+func addToken(name string) (string, error) {
+	var userId int
+
+	err := db.QueryRow(`--sql
+	SELECT id FROM users WHERE name = ?`, name).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	token := generateToken()
+
+	_, err = db.Exec(`--sql
+	INSERT INTO sessions (token, user_id) VALUES (?,?)`, token, userId)
+
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	return token, nil
+}
+
+func authCheck(token string) (string, bool) {
+    var name string
+
+    err := db.QueryRow(`--sql
+        SELECT u.name FROM sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.token = ?
+    `, token).Scan(&name)
+
+    if err != nil {
+        return "", false
+    }
+
+    return name, true
+}
+
+func updateToken(token string) bool {
+	_, err := db.Exec(`--sql
+	UPDATE sessions SET last_used = CURRENT_TIMESTAMP WHERE token = ?`, token)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
 }

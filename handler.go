@@ -23,6 +23,7 @@ type Packet struct {
 	ChatID   int             `json:"chatId"`
 	IsGroup  bool            `json:"isGroup"`
 	Data     json.RawMessage `json:"data,omitempty"`
+	Token    string          `json:"token,omitempty"`
 }
 
 var db *sql.DB
@@ -55,15 +56,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	defer func() {
-		mu.Lock()
-		name := connToName[conn]
-		if name != "" {
-			delete(clients, name)
-			delete(connToName, conn)
-			log.Println("disconnected:", name)
-		}
-		mu.Unlock()
-	}()
+    mu.Lock()
+    name, ok := connToName[conn]
+    if ok {
+        if clients[name] == conn {
+            delete(clients, name)
+        }
+        delete(connToName, conn)
+    }
+    mu.Unlock()
+}()
 
 	log.Println("new connection", conn.RemoteAddr())
 
@@ -97,6 +99,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			createChatWS(conn, &req)
 		case "getChats":
 			getChatsWS(conn)
+		case "auth":
+			authWS(conn, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}

@@ -12,9 +12,9 @@ func createTables() {
 	var err error
 
 	path := os.Getenv("DB_PATH")
-    if path == "" {
-        path = "database.db" 
-    }
+	if path == "" {
+		path = "database.db"
+	}
 
 	db, err = sql.Open("sqlite", path)
 
@@ -28,6 +28,18 @@ func createTables() {
 		name text UNIQUE not null,
 		password text not null)
 	`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(`--sql
+	CREATE TABLE IF NOT EXISTS sessions (
+    token      TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	last_used   DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`)
 
 	if err != nil {
 		log.Fatal(err)
