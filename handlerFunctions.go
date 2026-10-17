@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"encoding/json"
+	"log"
 
 	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
@@ -263,7 +263,10 @@ func authWS(conn *websocket.Conn, req *Packet) {
 		connToName[conn] = name
 		mu.Unlock()
 
-		oldConn.Close()
+		if oldConn != nil && oldConn != conn {
+			oldConn.Close()
+			log.Println("kicked old session for:", name)
+		}
 
 		sendPacket(conn, Packet{Type: "authStatus", Answer: "ok", Name: name})
 	} else {
