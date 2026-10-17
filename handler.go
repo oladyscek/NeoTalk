@@ -24,6 +24,8 @@ type Packet struct {
 	IsGroup  bool            `json:"isGroup"`
 	Data     json.RawMessage `json:"data,omitempty"`
 	Token    string          `json:"token,omitempty"`
+	BeforeID int             `json:"beforeId,omitempty"`
+	HasMore  bool            `json:"hasMore,omitempty"`
 }
 
 var db *sql.DB
@@ -56,16 +58,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	defer func() {
-    mu.Lock()
-    name, ok := connToName[conn]
-    if ok {
-        if clients[name] == conn {
-            delete(clients, name)
-        }
-        delete(connToName, conn)
-    }
-    mu.Unlock()
-}()
+		mu.Lock()
+		name, ok := connToName[conn]
+		if ok {
+			if clients[name] == conn {
+				delete(clients, name)
+			}
+			delete(connToName, conn)
+		}
+		mu.Unlock()
+	}()
 
 	log.Println("new connection", conn.RemoteAddr())
 

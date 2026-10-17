@@ -4,10 +4,28 @@
   <meta charset="utf-8">
   <title>NeoTalk</title>
 
+  <!-- Проверяем токен ДО отрисовки страницы -->
+  <script>
+    if (localStorage.getItem('token')) {
+      document.documentElement.classList.add('auth-pending');
+    }
+  </script>
+
   <style>
+    /* Если токен есть, скрываем экран логина на уровне CSS */
+    .auth-pending #login-screen,
+    .auth-pending #reg-screen {
+      display: none !important;
+    }
+  </style>
+
+  <style>
+    /* Все экраны скрыты по умолчанию */
+    #coming-soon { display: none; }
     #new-chat-screen { display: none; }
     #chats           { display: none; }
     #reg-screen      { display: none; }
+    #settings-screen { display: none; }
 
     .screen {
       display: flex; flex-direction: column; justify-content: center;
@@ -161,17 +179,33 @@
     <button id="cancel-chat-btn">back</button>
   </div>
 
+  <!-- ===== НАСТРОЙКИ ===== -->
+  <div class="screen" id="settings-screen">
+    <h1>settings</h1>
+    <button id="settingsProfileBtn">profile</button>
+    <button id="settingsLogoutBtn">log out</button>
+    <button id="settingsLangBtn">change language</button>
+    <button id="settingsDeleteBtn">delete account</button>
+    <button id="backSettingsButton">back</button>
+  </div>
+
+  <!-- ===== COMING SOON ===== -->
+  <div class="screen" id="coming-soon">
+    <h1>coming soon..</h1>
+    <button id="soonBackBtn">back</button>
+  </div>
+
   <!-- ===== ЧАТЫ ===== -->
   <div id="chats">
     <div class="app">
       <aside class="sidebar">
         <div class="sidebar-header">
           <span>Chats</span>
-            <div>
-              <button id="new-chat-btn">+</button>
-              <button id="logout-btn">×</button>
-            </div>
+          <div>
+            <button id="new-chat-btn">+</button>
+            <button id="settings-btn">⚙</button>
           </div>
+        </div>
         <ul class="chat-list"><!-- заполняется из сервера --></ul>
       </aside>
 
@@ -186,21 +220,24 @@
     </div>
   </div>
 
-  <script>
+    <script>
   // ================== STATE ==================
   let myName = '';
   let currentChatId = null;
   const chatsById = {};   // chatId -> { id, chatName, isGroup }
 
-    // ================== WEBSOCKET ==================
+  // Состояние для пагинации (бесконечного скролла)
+  let oldestMessageId = null;   // ID самого старого загруженного сообщения
+  let hasMoreHistory = true;    // Есть ли еще сообщения на сервере
+  let isLoadingHistory = false; // Защита от спама запросов при скролле
+
+  // ================== WEBSOCKET ==================
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
 
-  // Единый обработчик открытия
   ws.onopen = () => {
       console.log('ws connected');
       
-      // Проверяем токен прямо здесь
       const savedToken = localStorage.getItem('token');
       if (savedToken) {
           console.log('trying auto-auth');
@@ -217,10 +254,12 @@
   }
 
   // ================== UI ==================
-  const loginScreen   = document.getElementById('login-screen');
-  const regScreen     = document.getElementById('reg-screen');
-  const chatsScreen   = document.getElementById('chats');
-  const newChatScreen = document.getElementById('new-chat-screen');
+  const loginScreen    = document.getElementById('login-screen');
+  const regScreen      = document.getElementById('reg-screen');
+  const chatsScreen    = document.getElementById('chats');
+  const newChatScreen  = document.getElementById('new-chat-screen');
+  const settingsScreen = document.getElementById('settings-screen'); 
+  const soonScreen     = document.getElementById('coming-soon');
 
   const loginNameInput = document.getElementById('login-name');
   const loginPassInput = document.getElementById('login-pass');
@@ -228,10 +267,18 @@
   const regPassInput   = document.getElementById('reg-pass');
   const regPass2Input  = document.getElementById('reg-pass2');
 
-  const loginBtn    = document.getElementById('login-btn');
-  const registerBtn = document.getElementById('reg-btn');
-  const toRegBtn    = document.getElementById('to-register');
-  const toLoginBtn  = document.getElementById('to-login');
+  const loginBtn           = document.getElementById('login-btn');
+  const registerBtn        = document.getElementById('reg-btn');
+  const toRegBtn           = document.getElementById('to-register');
+  const toLoginBtn         = document.getElementById('to-login');
+  const settingsBtn        = document.getElementById('settings-btn');
+  const backSettingsButton = document.getElementById('backSettingsButton');
+  
+  const settingsProfileBtn = document.getElementById('settingsProfileBtn');
+  const settingsLogoutBtn  = document.getElementById('settingsLogoutBtn');
+  const settingsLangBtn    = document.getElementById('settingsLangBtn');
+  const settingsDeleteBtn  = document.getElementById('settingsDeleteBtn');
+  const soonBackBtn        = document.getElementById('soonBackBtn');
 
   const chatList     = document.querySelector('.chat-list');
   const chatHeader   = document.querySelector('.chat-header');
@@ -244,34 +291,63 @@
   const createChatBtn = document.getElementById('create-chat-btn');
   const cancelChatBtn = document.getElementById('cancel-chat-btn');
 
+  // ================== SCROLL EVENT ==================
+  // Срабатывает при прокрутке сообщений
+  messagesList.onscroll = () => {
+    // Если доскроллили до самого верха, есть еще сообщения, и мы не в процессе загрузки
+    if (messagesList.scrollTop === 0 && hasMoreHistory && !isLoadingHistory && currentChatId && oldestMessageId) {
+      isLoadingHistory = true;
+      console.log('Loading older messages before ID:', oldestMessageId);
+      send({ 
+        type: 'getHistory', 
+        chatId: currentChatId, 
+        beforeId: oldestMessageId 
+      });
+    }
+  };
+
   // ================== SCREENS ==================
   function showLogin() {
     loginScreen.style.display   = 'flex';
     regScreen.style.display     = 'none';
     chatsScreen.style.display   = 'none';
     newChatScreen.style.display = 'none';
+    settingsScreen.style.display = 'none';
+    soonScreen.style.display    = 'none';
   }
   function showReg() {
     loginScreen.style.display   = 'none';
     regScreen.style.display     = 'flex';
     chatsScreen.style.display   = 'none';
     newChatScreen.style.display = 'none';
+    settingsScreen.style.display = 'none';
+    soonScreen.style.display    = 'none';
   }
   function showChats() {
     loginScreen.style.display   = 'none';
     regScreen.style.display     = 'none';
     chatsScreen.style.display   = 'block';
     newChatScreen.style.display = 'none';
+    settingsScreen.style.display = 'none';
+    soonScreen.style.display    = 'none';
   }
   function showNewChat() {
     chatsScreen.style.display   = 'none';
     newChatScreen.style.display = 'flex';
   }
+  function showSettings() {
+    chatsScreen.style.display   = 'none';
+    settingsScreen.style.display = 'flex';
+  }
+  function showComingSoon() {
+    settingsScreen.style.display = 'none';
+    soonScreen.style.display = 'flex';
+  }
 
   toRegBtn.onclick   = showReg;
   toLoginBtn.onclick = showLogin;
 
-  // ================== LOGIN / REG ==================
+  // ================== LOGIN / REG / SETTINGS ==================
   loginBtn.onclick = () => {
     const name = loginNameInput.value.trim();
     const pass = loginPassInput.value;
@@ -293,6 +369,27 @@
   [regNameInput, regPassInput, regPass2Input].forEach(el =>
     el.addEventListener('keydown', e => { if (e.key === 'Enter') registerBtn.click(); }));
 
+  settingsBtn.onclick        = showSettings;
+  backSettingsButton.onclick = showChats;
+  
+  settingsProfileBtn.onclick = showComingSoon;
+  settingsLangBtn.onclick    = showComingSoon;
+  settingsDeleteBtn.onclick  = showComingSoon;
+
+  soonBackBtn.onclick = () => {
+    soonScreen.style.display = 'none';
+    settingsScreen.style.display = 'flex';
+  };
+
+  settingsLogoutBtn.onclick = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      send({ type: 'logout', token });
+    }
+    localStorage.removeItem('token');
+    location.reload();
+  };
+
   // ================== SERVER MESSAGES ==================
   ws.onmessage = (e) => {
     let p;
@@ -302,22 +399,23 @@
     switch (p.type) {
       case 'authStatus':
         if (p.answer === 'ok') {
-            myName = p.name; // ← сервер пришлет имя, мы его сохраним
+            myName = p.name;
+            document.documentElement.classList.remove('auth-pending');
             send({ type: 'getChats' });
             showChats();
         } else {
-            // токен протух или неверный
             localStorage.removeItem('token');
+            document.documentElement.classList.remove('auth-pending');
             console.log('auto-auth failed:', p.answer);
+            showLogin();
         }
         break;
 
       case 'loginStatus':
         if (p.answer === 'ok') {
           myName = loginNameInput.value.trim();
-
           localStorage.setItem('token', p.token);
-
+          document.documentElement.classList.remove('auth-pending');
           send({ type: 'getChats' });
           showChats();
         } else {
@@ -328,13 +426,12 @@
       case 'regStatus':
         if (p.answer === 'ok') {
           myName = regNameInput.value.trim();
-
           localStorage.setItem('token', p.token);
-
+          document.documentElement.classList.remove('auth-pending');
           send({ type: 'getChats' });
           showChats();
         } else {
-          alert('login: ' + p.answer);
+          alert('reg: ' + p.answer);
         }
         break;
 
@@ -348,9 +445,12 @@
 
       case 'getHistoryStatus':
         if (p.answer === 'ok') {
+          hasMoreHistory = !!p.hasMore; // <--- ВОТ ТУТ ДОБАВИЛИ !!
           renderHistory(p.data || []);
+          isLoadingHistory = false;
         } else {
           console.error('getHistory failed:', p.answer);
+          isLoadingHistory = false;
         }
         break;
 
@@ -366,17 +466,16 @@
         if (p.answer === 'ok') {
           newChatScreen.style.display = 'none';
           chatsScreen.style.display   = 'block';
-          send({ type: 'getChats' });   // перечитать список
+          send({ type: 'getChats' });
         } else {
           alert('create chat: ' + p.answer);
         }
         break;
+        
       case 'newChat':
-        // кто-то создал с нами чат — перечитать список
         send({ type: 'getChats' });
         break;
     }
-    
   };
 
   // ================== CHAT LIST ==================
@@ -414,23 +513,71 @@
     const chat = chatsById[currentChatId];
     chatHeader.textContent = chat ? chat.chatName : '?';
 
+    // СБРОС ПАГИНАЦИИ ПРИ СМЕНЕ ЧАТА
+    oldestMessageId = null;
+    hasMoreHistory = true;
+    isLoadingHistory = false;
     messagesList.innerHTML = '';
-    if (chat) send({ type: 'getHistory', chatId: currentChatId });
+
+    if (chat) send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
   }
 
   // ================== MESSAGES ==================
-  function renderHistory(msgs) {
-    messagesList.innerHTML = '';
-    msgs.forEach(m => addMessage(m.sender, m.message));
-    messagesList.scrollTop = messagesList.scrollHeight;
-  }
-
-  function addMessage(sender, text) {
+  function createMessageEl(sender, text) {
     const li = document.createElement('li');
     li.className = (sender === myName) ? 'own' : 'other';
     li.textContent = sender + ': ' + text;
+    return li;
+  }
+
+  function renderHistory(msgs) {
+    if (msgs.length === 0) {
+      hasMoreHistory = false;
+      return;
+    }
+
+    if (oldestMessageId !== null) {
+      // ЭТО ПОДГРУЗКА СТАРЫХ СООБЩЕНИЙ (скролл вверх)
+      const prevHeight = messagesList.scrollHeight;
+
+      // Вставляем в начало списка в правильном порядке
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        const m = msgs[i];
+        const li = createMessageEl(m.sender, m.message);
+        messagesList.insertBefore(li, messagesList.firstChild);
+      }
+
+      // Корректируем скролл, чтобы экран не прыгнул вниз
+      const newHeight = messagesList.scrollHeight;
+      messagesList.scrollTop += (newHeight - prevHeight);
+    } else {
+      // ЭТО ПЕРВАЯ ЗАГРУЗКА ЧАТА
+      messagesList.innerHTML = '';
+      msgs.forEach(m => {
+        const li = createMessageEl(m.sender, m.message);
+        messagesList.appendChild(li);
+      });
+      // Прокручиваем в самый низ
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
+
+    // Запоминаем ID самого старого сообщения для следующего запроса.
+    // Так как сервер возвращает массив уже перевернутым (старые сверху),
+    // то msgs[0] — это самое старое сообщение.
+    oldestMessageId = msgs[0].id;
+  }
+
+  function addMessage(sender, text) {
+    // Проверяем, находится ли пользователь в самом низу (с погрешностью 50px)
+    const isAtBottom = messagesList.scrollHeight - messagesList.scrollTop - messagesList.clientHeight < 50;
+
+    const li = createMessageEl(sender, text);
     messagesList.appendChild(li);
-    messagesList.scrollTop = messagesList.scrollHeight;
+
+    // Скроллим вниз ТОЛЬКО если это наше сообщение или мы уже были внизу
+    if (sender === myName || isAtBottom) {
+      messagesList.scrollTop = messagesList.scrollHeight;
+    }
   }
 
   // ================== SEND ==================
@@ -448,7 +595,7 @@
       send({ type: 'sendMsg', to: chat.chatName, text, isGroup: false });
     }
 
-    addMessage(myName, text);   // локальное эхо
+    addMessage(myName, text);
     sendInput.value = '';
     sendInput.focus();
   };
@@ -457,13 +604,11 @@
   function handleIncomingMsg(p) {
     const chat = chatsById[currentChatId];
 
-    // группа: сервер присылает chatId
     if (p.chatId && p.chatId === currentChatId) {
       addMessage(p.from, p.text);
       return;
     }
 
-    // DM: сервер не присылает chatId, определяем по имени отправителя
     if (!p.chatId && chat && !chat.isGroup && chat.chatName === p.from) {
       addMessage(p.from, p.text);
       return;

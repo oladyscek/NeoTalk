@@ -243,7 +243,9 @@ func getHistoryWS(conn *websocket.Conn, req *Packet) {
 		return
 	}
 
-	sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "ok", Data: data})
+	hasMore := len(list) == 100
+
+	sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "ok", Data: data, HasMore: hasMore})
 }
 
 func authWS(conn *websocket.Conn, req *Packet) {

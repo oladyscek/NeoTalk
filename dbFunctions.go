@@ -381,6 +381,7 @@ func getChats(sender string) ([]ChatFormat, bool) {
 }
 
 type HistoryFormat struct {
+	Id      int    `json:"id"`
 	Message string `json:"message"`
 	Time    string `json:"time"`
 	Sender  string `json:"sender"`
@@ -412,16 +413,32 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		return nil, false
 	}
 
-	data, err := db.Query(`--sql
-	SELECT m.msg, m.created_at, u.name from messages m 
-	JOIN users u ON u.id = m.sender_id  
-	where m.chat_id = ?
-	ORDER BY created_at DESC
-	LIMIT 100`, req.ChatID)
+	var data *sql.Rows
 
-	if err != nil {
-		log.Println(err)
-		return nil, false
+	if req.BeforeID == 0 {
+		data, err = db.Query(`--sql
+		SELECT m.msg, m.created_at, u.name from messages m 
+		JOIN users u ON u.id = m.sender_id  
+		where m.chat_id = ?
+		ORDER BY m.id DESC
+		LIMIT 100`, req.ChatID)
+
+		if err != nil {
+			log.Println(err)
+			return nil, false
+		}
+	} else {
+		data, err = db.Query(`--sql
+		SELECT m.msg, m.created_at, u.name from messages m 
+		JOIN users u ON u.id = m.sender_id  
+		where m.chat_id = ? and m.id < ?
+		ORDER BY m.id DESC
+		LIMIT 100`, req.ChatID, req.BeforeID)
+
+		if err != nil {
+			log.Println(err)
+			return nil, false
+		}
 	}
 
 	defer data.Close()
@@ -430,7 +447,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	for data.Next() {
 		var c HistoryFormat
-		if err := data.Scan(&c.Message, &c.Time, &c.Sender); err != nil {
+		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
@@ -480,19 +497,19 @@ func addToken(name string) (string, error) {
 }
 
 func authCheck(token string) (string, bool) {
-    var name string
+	var name string
 
-    err := db.QueryRow(`--sql
+	err := db.QueryRow(`--sql
         SELECT u.name FROM sessions s
         JOIN users u ON u.id = s.user_id
         WHERE s.token = ?
     `, token).Scan(&name)
 
-    if err != nil {
-        return "", false
-    }
+	if err != nil {
+		return "", false
+	}
 
-    return name, true
+	return name, true
 }
 
 func updateToken(token string) bool {
