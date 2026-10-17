@@ -417,7 +417,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	if req.BeforeID == 0 {
 		data, err = db.Query(`--sql
-		SELECT m.msg, m.created_at, u.name from messages m 
+		SELECT m.id, m.msg, m.created_at, u.name from messages m 
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ?
 		ORDER BY m.id DESC
@@ -429,7 +429,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		}
 	} else {
 		data, err = db.Query(`--sql
-		SELECT m.msg, m.created_at, u.name from messages m 
+		SELECT m.id, m.msg, m.created_at, u.name from messages m 
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ? and m.id < ?
 		ORDER BY m.id DESC
