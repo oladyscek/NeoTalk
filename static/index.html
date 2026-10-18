@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NeoTalk</title>
 
   <!-- Prevent flash of unauthenticated content (FOUC) by checking for token early -->
@@ -150,16 +151,16 @@
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
     .chat-list, .messages { scrollbar-width: none; }
 
-        /* ================== MOBILE ADAPTATION ================== */
+    /* ================== MOBILE ADAPTATION ================== */
     @media (max-width: 768px) {
       /* Fix for mobile browser address bars */
       body, .app, #chats {
         height: 100dvh; 
       }
 
-      .screen h1 { font-size: 40px; margin-bottom: 40px; } /* Уменьшаем логотип */
-      .screen input { height: 40px; font-size: 16px; } /* Поля ввода крупнее (чтобы iOS не звнил) */
-      .screen button { font-size: 18px; padding: 10px 40px; } /* Кнопки удобнее для пальцев */
+      .screen h1 { font-size: 40px; margin-bottom: 40px; }
+      .screen input { height: 40px; font-size: 16px; } 
+      .screen button { font-size: 18px; padding: 10px 40px; } 
 
       /* Layout changes for chat app */
       .app {
@@ -418,7 +419,14 @@
 
   function showLogin() { hideAllScreens(); loginScreen.style.display = 'flex'; }
   function showReg() { hideAllScreens(); regScreen.style.display = 'flex'; }
-  function showChats() { hideAllScreens(); chatsScreen.style.display = 'block'; }
+  
+  function showChats() { 
+    hideAllScreens(); 
+    chatsScreen.style.display = 'block'; 
+    // Remove mobile class to ensure sidebar is visible when navigating back to chats
+    document.body.classList.remove('show-mobile-chat');
+  }
+  
   function showSettings() { hideAllScreens(); settingsScreen.style.display = 'flex'; }
   function showComingSoon() { hideAllScreens(); soonScreen.style.display = 'flex'; }
   function showNewChoice() { hideAllScreens(); newChoiceScreen.style.display = 'flex'; }
@@ -525,13 +533,6 @@
     send({ type: 'createChat', to: name, isGroup: false });
   };
 
-    // Mobile back button logic
-  mobileBackBtn.onclick = () => {
-    document.body.classList.remove('show-mobile-chat');
-    // Снимаем выделение с чата при выходе
-    document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
-  };
-
   createGroupBtn.onclick = () => {
     const gName = newGroupName.value.trim();
     
@@ -545,6 +546,13 @@
       name: gName, 
       data: groupMembers 
     });
+  };
+
+  // ================== MOBILE NAVIGATION ==================
+  mobileBackBtn.onclick = () => {
+    document.body.classList.remove('show-mobile-chat');
+    // Remove active state from chat list
+    document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
   };
 
   // ================== INCOMING WEBSOCKET MESSAGES ==================
@@ -633,7 +641,7 @@
     Object.keys(chatsById).forEach(k => delete chatsById[k]); // Clear map
 
     if (!chats.length) {
-      chatHeader.textContent = '';
+      chatTitle.textContent = ''; // Clear title only, do not destroy header
       messagesList.innerHTML = '';
       return;
     }
@@ -646,9 +654,11 @@
       chatList.appendChild(li);
     });
 
-    // Auto-select the first chat
+    // Auto-select the first chat ONLY on desktop. On mobile, let the user see the chat list first.
     const first = chatList.querySelector('li');
-    if (first) selectChat(first);
+    if (first && window.innerWidth > 768) {
+      selectChat(first);
+    }
   }
 
   chatList.onclick = (e) => {
@@ -662,16 +672,16 @@
     currentChatId = parseInt(li.dataset.chatId);
     const chat = chatsById[currentChatId];
     
-    // Изменение: записываем имя в chatTitle, а не в header
+    // Write chat name to the span inside header, not destroying the whole header
     chatTitle.textContent = chat ? chat.chatName : '?';
 
-    // Сброс пагинации
+    // Reset pagination state
     oldestMessageId = null;
     hasMoreHistory = true;
     isLoadingHistory = false;
     messagesList.innerHTML = '';
 
-    // На мобилках сдвигаем экран чата
+    // On mobile, slide the chat area into view
     document.body.classList.add('show-mobile-chat');
 
     if (chat) send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
