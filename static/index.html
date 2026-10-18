@@ -453,7 +453,13 @@
     const name  = regNameInput.value.trim();
     const pass  = regPassInput.value;
     const pass2 = regPass2Input.value;
-    if (!name) return alert('enter name');
+    
+    const validName = /^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$/;
+    
+    if (!validName.test(name)) {
+      return alert('Имя должно быть от 3 до 20 символов. Разрешены только буквы (рус/англ), цифры и _.');
+    }
+    
     if (pass !== pass2) return alert('passwords do not match');
     send({ type: 'reg', name, password: pass });
   };
@@ -514,33 +520,47 @@
     });
   }
 
-  // Add member to chips array when pressing Enter or Comma
+    // === ФУНКЦИЯ ДЛЯ ОЧИСТКИ ИМЕНИ ===
+  // Убирает вообще все пробелы, переносы строк и запятые
+  function cleanMemberName(str) {
+    return str.replace(/[\s,]+/g, '');
+  }
+
+  // === ДОБАВЛЕНИЕ УЧАСТНИКА В ЧИПСЫ ===
+  function addMemberFromInput() {
+    // Читаем значение и очищаем его
+    const rawValue = newGroupMemberInput.value;
+    const name = cleanMemberName(rawValue);
+    
+    // Если имя не пустое и его еще нет в списке — добавляем
+    if (name && !groupMembers.includes(name)) {
+      groupMembers.push(name);
+      renderChips();
+    }
+    // Очищаем поле ввода в любом случае
+    newGroupMemberInput.value = '';
+  }
+
+  // Слушаем нажатие Enter или запятой в поле ввода
   newGroupMemberInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault(); // Prevent accidental form submission
-      const name = newGroupMemberInput.value.trim().replace(',', '');
-      
-      if (name && !groupMembers.includes(name)) {
-        groupMembers.push(name);
-        renderChips();
-      }
-      newGroupMemberInput.value = '';
+      e.preventDefault(); // Не даем отправиться форме
+      addMemberFromInput();
     }
   });
 
-  createChatBtn.onclick = () => {
-    const name = newChatInput.value.trim();
-    if (!name) return;
-    send({ type: 'createChat', to: name, isGroup: false });
-  };
-
+  // === ОБРАБОТКА КНОПКИ СОЗДАНИЯ ГРУППЫ ===
   createGroupBtn.onclick = () => {
+    // 1. Подбираем "хвост" — имя, которое ввели, но не нажали Enter
+    addMemberFromInput(); 
+
+    // 2. Проверяем, ввели ли название самой группы (тоже чистим от лишних пробелов)
     const gName = newGroupName.value.trim();
     
     if (!gName) return alert('enter group name');
     if (groupMembers.length === 0) return alert('add at least one member');
     
-    // Send request with array of group members
+    // 3. Отправляем
     send({ 
       type: 'createChat', 
       isGroup: true, 
@@ -548,7 +568,6 @@
       data: groupMembers 
     });
   };
-
   // ================== MOBILE NAVIGATION ==================
   mobileBackBtn.onclick = () => {
     document.body.classList.remove('show-mobile-chat');

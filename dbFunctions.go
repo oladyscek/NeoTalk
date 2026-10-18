@@ -6,13 +6,23 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"regexp"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
 
+var validUsername = regexp.MustCompile(`^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$`)
+
 func reg(name string, password string) bool {
 	if name == "" || password == "" {
+		return false
+	}
+
+	name = strings.TrimSpace(name)
+	
+	if !validUsername.MatchString(name) || password == "" {
 		return false
 	}
 
@@ -41,6 +51,13 @@ func reg(name string, password string) bool {
 }
 
 func login(name string, password string) bool {
+
+	name = strings.TrimSpace(name)
+	
+	if !validUsername.MatchString(name) || password == "" {
+		return false
+	}
+
 	var hash string
 
 	err := db.QueryRow(`--sql
