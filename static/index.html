@@ -482,7 +482,7 @@
     location.reload(); // Reload to clear memory and show login screen
   };
 
-  // ================== CREATE CHAT / GROUP LOGIC ==================
+    // ================== CREATE CHAT / GROUP LOGIC ==================
   newChatBtn.onclick = showNewChoice;
 
   choiceDmBtn.onclick = () => {
@@ -520,47 +520,46 @@
     });
   }
 
-    // === ФУНКЦИЯ ДЛЯ ОЧИСТКИ ИМЕНИ ===
-  // Убирает вообще все пробелы, переносы строк и запятые
+  // Очистка имени от всех пробелов и запятых
   function cleanMemberName(str) {
     return str.replace(/[\s,]+/g, '');
   }
 
-  // === ДОБАВЛЕНИЕ УЧАСТНИКА В ЧИПСЫ ===
+  // Добавление участника из поля ввода в массив (для групп)
   function addMemberFromInput() {
-    // Читаем значение и очищаем его
-    const rawValue = newGroupMemberInput.value;
-    const name = cleanMemberName(rawValue);
-    
-    // Если имя не пустое и его еще нет в списке — добавляем
+    const name = cleanMemberName(newGroupMemberInput.value);
     if (name && !groupMembers.includes(name)) {
       groupMembers.push(name);
       renderChips();
     }
-    // Очищаем поле ввода в любом случае
     newGroupMemberInput.value = '';
   }
 
-  // Слушаем нажатие Enter или запятой в поле ввода
+  // Слушаем Enter и запятую для добавления чипса
   newGroupMemberInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault(); // Не даем отправиться форме
+      e.preventDefault(); 
       addMemberFromInput();
     }
   });
 
-  // === ОБРАБОТКА КНОПКИ СОЗДАНИЯ ГРУППЫ ===
+  // --- СОЗДАНИЕ ЛИЧНОГО ЧАТА ---
+  createChatBtn.onclick = () => {
+    const name = newChatInput.value.trim();
+    if (!name) return;
+    send({ type: 'createChat', to: name, isGroup: false });
+  };
+
+  // --- СОЗДАНИЕ ГРУППЫ ---
   createGroupBtn.onclick = () => {
-    // 1. Подбираем "хвост" — имя, которое ввели, но не нажали Enter
+    // Подхватываем последнее имя, если его ввели, но не нажали Enter
     addMemberFromInput(); 
 
-    // 2. Проверяем, ввели ли название самой группы (тоже чистим от лишних пробелов)
     const gName = newGroupName.value.trim();
     
     if (!gName) return alert('enter group name');
     if (groupMembers.length === 0) return alert('add at least one member');
     
-    // 3. Отправляем
     send({ 
       type: 'createChat', 
       isGroup: true, 

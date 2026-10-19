@@ -275,3 +275,7 @@ func authWS(conn *websocket.Conn, req *Packet) {
 		sendPacket(conn, Packet{Type: "authStatus", Answer: "denied"})
 	}
 }
+
+func delMsgWS(conn *websocket.Conn, req *Packet) {
+	
+}
