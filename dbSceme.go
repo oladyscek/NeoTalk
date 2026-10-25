@@ -16,12 +16,15 @@ func createTables() {
 		path = "database.db"
 	}
 
-	db, err = sql.Open("sqlite", path)
+	dsn := path + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)"
+	db, err = sql.Open("sqlite", dsn)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	db.SetMaxOpenConns(1)
+	
 	_, err = db.Exec(`--sql
 	CREATE table if not EXISTS users (
 		id integer primary key, 

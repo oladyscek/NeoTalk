@@ -4,114 +4,86 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
 
-func regWS(conn *websocket.Conn, req *Packet) {
-	log.Println("REG REQEST:", req.Name)
+func regWS(c *Client, req *Packet) {
+	log.Println("REG REQUEST:", req.Name)
+
 	ok := reg(req.Name, req.Password)
-
-	if ok {
-		addUserConn(conn, req.Name) //auto logun
-		token, err := addToken(req.Name)
-
-		if err != nil {
-			sendPacket(conn, Packet{Type: "regStatus", Answer: "failed"})
-		}
-
-		sendPacket(conn, Packet{Type: "regStatus", Answer: "ok", Token: token})
-
-	} else {
-		sendPacket(conn, Packet{Type: "regStatus", Answer: "username busy"})
-	}
-}
-
-func loginWS(conn *websocket.Conn, req *Packet) {
-	log.Println("LOGIN REQEST:", req.Name)
-	ok := login(req.Name, req.Password)
-
 	if !ok {
-		sendPacket(conn, Packet{Type: "loginStatus", Answer: "denied"})
+		c.send(Packet{Type: "regStatus", Answer: "failed"})
 		return
-	}
-
-	var oldConn *websocket.Conn
-
-	mu.Lock()
-	if c, busy := clients[req.Name]; busy {
-		oldConn = c
-		delete(connToName, c) // old session
-	}
-	clients[req.Name] = conn // making new session
-	connToName[conn] = req.Name
-	mu.Unlock()
-
-	if oldConn != nil {
-		oldConn.Close()
-		log.Println("kicked old session for:", req.Name)
 	}
 
 	token, err := addToken(req.Name)
-
 	if err != nil {
-		sendPacket(conn, Packet{Type: "loginStatus", Answer: "failed"})
+		log.Println("addToken after reg:", err)
+		c.send(Packet{Type: "regStatus", Answer: "failed"})
 		return
 	}
 
-	sendPacket(conn, Packet{Type: "loginStatus", Answer: "ok", Token: token})
+	c.Name = req.Name
+	addUserConn(c)
+
+	c.send(Packet{Type: "regStatus", Answer: "ok", Token: token})
 }
 
-func sendPacket(conn *websocket.Conn, req Packet) {
-	answer, err := json.Marshal(req)
+func loginWS(c *Client, req *Packet) {
+	log.Println("LOGIN REQUEST:", req.Name)
 
-	if err != nil {
-		log.Println("JSON MARSHAL ERROR:", err)
+	ok := login(req.Name, req.Password)
+	if !ok {
+		c.send(Packet{Type: "loginStatus", Answer: "denied"})
 		return
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, answer)
-
+	token, err := addToken(req.Name)
 	if err != nil {
-		log.Println("send message error:", err)
+		log.Println("addToken:", err)
+		c.send(Packet{Type: "loginStatus", Answer: "failed"})
 		return
 	}
+
+	c.Name = req.Name
+	addUserConn(c)
+
+	c.send(Packet{Type: "loginStatus", Answer: "ok", Token: token})
 }
 
-func sendMsgWS(conn *websocket.Conn, req *Packet) {
+func sendMsgWS(c *Client, req *Packet) {
 	mu.Lock()
-	sender := connToName[conn]
-	recipientConn, _ := clients[req.To]
+	recipient, _ := clients[req.To]
 	mu.Unlock()
 
-	if sender == "" {
-		sendPacket(conn, Packet{Type: "msgStatus", Answer: "not logged in"})
+	if c.Name == "" {
+		c.send(Packet{Type: "msgStatus", Answer: "not logged in"})
 		return
 	}
 
-	if sender == req.To {
-		sendPacket(conn, Packet{Type: "msgStatus", Answer: "cannot send to yourself"})
+	if c.Name == req.To {
+		c.send(Packet{Type: "msgStatus", Answer: "cannot send to yourself"})
 		return
 	}
 
 	if !req.IsGroup {
 
-		_, ok := sendMsg(req, sender) //send to db, could be found in dbFunctions
+		_, ok := sendMsg(req, c.Name) //send to db, could be found in dbFunctions
 
 		if !ok {
-			sendPacket(conn, Packet{Type: "msgStatus", Answer: "failed"})
+			c.send(Packet{Type: "msgStatus", Answer: "failed"})
 			return
 		}
 
-		if recipientConn != nil {
-			sendPacket(recipientConn, Packet{Type: "incomedMsg", From: sender, To: req.To, Text: req.Text})
+		if recipient != nil {
+			recipient.send(Packet{Type: "incomedMsg", From: c.Name, To: req.To, Text: req.Text})
 		}
-		sendPacket(conn, Packet{Type: "msgStatus", Answer: "ok"})
+		c.send(Packet{Type: "msgStatus", Answer: "ok"})
 	} else {
-		chatID, ok := sendMsg(req, sender)
+		chatID, ok := sendMsg(req, c.Name)
 
 		if !ok {
-			sendPacket(conn, Packet{Type: "msgStatus", Answer: "failed"})
+			c.send(Packet{Type: "msgStatus", Answer: "failed"})
 			return
 		}
 
@@ -119,91 +91,96 @@ func sendMsgWS(conn *websocket.Conn, req *Packet) {
         SELECT u.name FROM users u
         JOIN chat_members cm ON cm.user_id = u.id
         WHERE cm.chat_id = ? AND u.name != ?
-		`, chatID, sender)
+		`, chatID, c.Name)
 		if err != nil {
 			log.Println("broadcast query error:", err)
 			return
 		}
-		defer rows.Close()
 
-		mu.Lock()
-		defer mu.Unlock()
-
+		var names []string
 		for rows.Next() {
 			var name string
 			if err := rows.Scan(&name); err != nil {
 				log.Println("scan error:", err)
 				continue
 			}
+			names = append(names, name)
+		}
+		rows.Close()
 
-			if recipientConn, ok := clients[name]; ok { // if user online send by websocket
-				sendPacket(recipientConn, Packet{
-					Type:   "incomedMsg",
-					From:   sender,
-					ChatID: int(chatID),
-					Text:   req.Text,
-				})
+		mu.Lock()
+		members := make([]*Client, 0, len(names))
+		for _, name := range names {
+			if cl, ok := clients[name]; ok {
+				members = append(members, cl)
 			}
+		}
+		mu.Unlock()
+
+		for _, m := range members {
+			m.send(Packet{
+				Type:   "incomedMsg",
+				From:   c.Name,
+				ChatID: int(chatID),
+				Text:   req.Text,
+			})
 		}
 	}
 }
 
-func createChatWS(conn *websocket.Conn, req *Packet) {
+func createChatWS(c *Client, req *Packet) {
 	mu.Lock()
-	creator := connToName[conn]
-	recipientConn, exist := clients[req.To]
+	r, exist := clients[req.To]
 	mu.Unlock()
 
-	if creator == "" {
-		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "not logged in"})
+	if c.Name == "" {
+		c.send(Packet{Type: "newChatStatus", Answer: "not logged in"})
 		return
 	}
 
-	ok, id := createChat(req, creator) // adding to db, could be found in dbFunctions
+	ok, id := createChat(req, c.Name) // adding to db, could be found in dbFunctions
 
 	if ok {
-		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "ok", ChatID: id})
+		c.send(Packet{Type: "newChatStatus", Answer: "ok", ChatID: id})
 
 		if !req.IsGroup {
 			if exist {
-				sendPacket(recipientConn, Packet{Type: "newChat", ChatID: id})
+				r.send(Packet{Type: "newChat", ChatID: id})
 			}
 		} else {
 			var users []string // group members except creator
 			err := json.Unmarshal(req.Data, &users)
 
 			if err != nil {
-				sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
+				c.send(Packet{Type: "newChatStatus", Answer: "failed"})
 				return
 			}
 			for _, user := range users {
-				recipientConn, exist := clients[user]
+				mu.Lock()
+				r, exist := clients[user]
+				mu.Unlock()
 
 				if exist {
-					sendPacket(recipientConn, Packet{Type: "newChat", ChatID: id})
+					r.send(Packet{Type: "newChat", ChatID: id})
 				}
 			}
 		}
 
 	} else {
-		sendPacket(conn, Packet{Type: "newChatStatus", Answer: "failed"})
+		c.send(Packet{Type: "newChatStatus", Answer: "failed"})
 	}
 }
 
-func getChatsWS(conn *websocket.Conn) {
-	mu.Lock()
-	sender, ok := connToName[conn]
-	mu.Unlock()
-
-	if !ok {
-		sendPacket(conn, Packet{Type: "getChatStatus", Answer: "not logged in"})
+func getChatsWS(c *Client) {
+	if c.Name == "" {
+		c.send(Packet{Type: "getChatStatus", Answer: "not logged in"})
 		return
 	}
 
-	list, ok := getChats(sender)
+	list, ok := getChats(c.Name)
 
 	if !ok {
-		sendPacket(conn, Packet{Type: "getChatStatus", Answer: "failed"})
+		c.send(Packet{Type: "getChatStatus", Answer: "failed"})
 		return
 	}
 
@@ -211,71 +188,64 @@ func getChatsWS(conn *websocket.Conn) {
 
 	if err != nil {
 		log.Println(err)
-		sendPacket(conn, Packet{Type: "getChatStatus", Answer: "failed"})
+		c.send(Packet{Type: "getChatStatus", Answer: "failed"})
 		return
 	}
 
-	sendPacket(conn, Packet{Type: "getChatStatus", Answer: "ok", Data: data})
+	c.send(Packet{Type: "getChatStatus", Answer: "ok", Data: data})
 }
 
-func getHistoryWS(conn *websocket.Conn, req *Packet) {
-	mu.Lock()
-	sender, ok := connToName[conn]
-	mu.Unlock()
-
-	if !ok {
-		sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "not logged in"})
+func getHistoryWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "getHistoryStatus", Answer: "not logged in"})
 		return
 	}
 
-	list, ok := getHistory(req, sender)
+	list, ok := getHistory(req, c.Name)
 
 	if !ok {
-		sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "failed"})
+		c.send(Packet{Type: "getHistoryStatus", Answer: "failed"})
 		return
+	}
+
+	hasMore := len(list) == 101
+
+	if hasMore {
+		list = list[:100]
 	}
 
 	data, err := json.Marshal(list)
 
 	if err != nil {
 		log.Println(err)
-		sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "failed"})
+		c.send(Packet{Type: "getHistoryStatus", Answer: "failed"})
 		return
 	}
 
-	hasMore := len(list) == 100
-
-	sendPacket(conn, Packet{Type: "getHistoryStatus", Answer: "ok", Data: data, HasMore: hasMore})
+	c.send(Packet{Type: "getHistoryStatus", Answer: "ok", Data: data, HasMore: hasMore})
 }
 
-func authWS(conn *websocket.Conn, req *Packet) {
+func authWS(c *Client, req *Packet) {
 	name, ok := authCheck(req.Token)
-
-	if ok {
-		ok = updateToken(req.Token)
-
-		var oldConn *websocket.Conn
-
-		mu.Lock()
-		if c, busy := clients[name]; busy {
-			oldConn = c
-			delete(connToName, c) // old session
-		}
-		clients[name] = conn // making new session
-		connToName[conn] = name
-		mu.Unlock()
-
-		if oldConn != nil && oldConn != conn {
-			oldConn.Close()
-			log.Println("kicked old session for:", name)
-		}
-
-		sendPacket(conn, Packet{Type: "authStatus", Answer: "ok", Name: name})
-	} else {
-		sendPacket(conn, Packet{Type: "authStatus", Answer: "denied"})
+	if !ok {
+		c.send(Packet{Type: "authStatus", Answer: "denied"})
+		return
 	}
+
+	ok = updateToken(req.Token)
+
+	if !ok {
+		log.Println("updateToken error")
+		c.send(Packet{Type: "authStatus", Answer: "failed"})
+		return
+	}
+
+	c.Name = name
+	addUserConn(c)
+
+	c.send(Packet{Type: "authStatus", Answer: "ok", Name: name})
 }
 
-func delMsgWS(conn *websocket.Conn, req *Packet) {
-	
+func delMsgWS(c *Client, req *Packet) {
+
 }

@@ -21,7 +21,7 @@ func reg(name string, password string) bool {
 	}
 
 	name = strings.TrimSpace(name)
-	
+
 	if !validUsername.MatchString(name) || password == "" {
 		return false
 	}
@@ -53,7 +53,7 @@ func reg(name string, password string) bool {
 func login(name string, password string) bool {
 
 	name = strings.TrimSpace(name)
-	
+
 	if !validUsername.MatchString(name) || password == "" {
 		return false
 	}
@@ -339,12 +339,6 @@ func sendMsg(req *Packet, sender string) (int64, bool) {
 	}
 }
 
-type ChatFormat struct {
-	ChatName string `json:"chatName"`
-	ID       int    `json:"id"`
-	IsGroup  bool   `json:"isGroup"`
-}
-
 func getChats(sender string) ([]ChatFormat, bool) {
 	var userId int
 
@@ -397,13 +391,6 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	return results, true
 }
 
-type HistoryFormat struct {
-	Id      int    `json:"id"`
-	Message string `json:"message"`
-	Time    string `json:"time"`
-	Sender  string `json:"sender"`
-}
-
 func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.ChatID = id of second user or group
 	var userId int
 
@@ -438,7 +425,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ?
 		ORDER BY m.id DESC
-		LIMIT 100`, req.ChatID)
+		LIMIT 101`, req.ChatID)
 
 		if err != nil {
 			log.Println(err)
@@ -450,7 +437,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ? and m.id < ?
 		ORDER BY m.id DESC
-		LIMIT 100`, req.ChatID, req.BeforeID)
+		LIMIT 101`, req.ChatID, req.BeforeID)
 
 		if err != nil {
 			log.Println(err)
@@ -484,8 +471,8 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 }
 
 func generateToken() string {
-	b := make([]byte, 32) // 32 байта = 64 hex-символа
-	rand.Read(b)          // заполняем случайными байтами
+	b := make([]byte, 32)
+	rand.Read(b)
 	return hex.EncodeToString(b)
 }
 

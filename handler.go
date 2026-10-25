@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-
+	"strings"
 	"encoding/json"
 	"sync"
 
@@ -12,62 +12,50 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-type Packet struct {
-	Type     string          `json:"type"`
-	From     string          `json:"from,omitempty"`
-	To       string          `json:"to,omitempty"`
-	Text     string          `json:"text,omitempty"`
-	Name     string          `json:"name,omitempty"`
-	Password string          `json:"password,omitempty"`
-	Answer   string          `json:"answer,omitempty"`
-	ChatID   int             `json:"chatId"`
-	IsGroup  bool            `json:"isGroup"`
-	Data     json.RawMessage `json:"data,omitempty"`
-	Token    string          `json:"token,omitempty"`
-	BeforeID int             `json:"beforeId,omitempty"`
-	HasMore  bool            `json:"hasMore,omitempty"`
-}
 
 var db *sql.DB
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+    origin := r.Header.Get("Origin")
+    return origin == "" || strings.Contains(origin, r.Host)
+	},
 }
 
 var (
-	mu         sync.Mutex
-	clients    = make(map[string]*websocket.Conn)
-	connToName = make(map[*websocket.Conn]string)
+    mu      sync.Mutex
+    clients = make(map[string]*Client) // name -> client
 )
 
-func addUserConn(conn *websocket.Conn, name string) {
-	mu.Lock()
-	clients[name] = conn
-	connToName[conn] = name
-	mu.Unlock()
+func addUserConn(c *Client) {
+    mu.Lock()
+    old := clients[c.Name]
+    clients[c.Name] = c
+    mu.Unlock()
+
+    if old != nil && old != c {
+        old.Conn.Close()
+        log.Println("kicked old session for:", c.Name)
+    }
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Println("upgrade error", err)
+        return
+    }
 
-	if err != nil {
-		log.Println("upgrade error", err)
-		return
-	}
+    cl := &Client{Conn: conn} 
 
-	defer conn.Close()
-
-	defer func() {
-		mu.Lock()
-		name, ok := connToName[conn]
-		if ok {
-			if clients[name] == conn {
-				delete(clients, name)
-			}
-			delete(connToName, conn)
-		}
-		mu.Unlock()
-	}()
+    defer func() {
+        conn.Close()
+        mu.Lock()
+        if cl.Name != "" && clients[cl.Name] == cl {
+            delete(clients, cl.Name)
+        }
+        mu.Unlock()
+    }()
 
 	log.Println("new connection", conn.RemoteAddr())
 
@@ -90,21 +78,21 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		switch req.Type {
 		case "reg":
-			regWS(conn, &req)
+			regWS(cl, &req)
 		case "login":
-			loginWS(conn, &req)
+			loginWS(cl, &req)
 		case "sendMsg":
-			sendMsgWS(conn, &req)
+			sendMsgWS(cl, &req)
 		case "getHistory":
-			getHistoryWS(conn, &req)
+			getHistoryWS(cl, &req)
 		case "createChat":
-			createChatWS(conn, &req)
+			createChatWS(cl, &req)
 		case "getChats":
-			getChatsWS(conn)
+			getChatsWS(cl)
 		case "auth":
-			authWS(conn, &req)
+			authWS(cl, &req)
 		case "delMsg":
-			delMsgWS(conn, &req)
+			delMsgWS(cl, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}
