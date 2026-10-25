@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"sync"
 	"log"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -30,6 +30,7 @@ type Packet struct {
 	Password string          `json:"password,omitempty"`
 	Answer   string          `json:"answer,omitempty"`
 	ChatID   int             `json:"chatId"`
+	MsgId    int             `json:"msgId"`
 	IsGroup  bool            `json:"isGroup"`
 	Data     json.RawMessage `json:"data,omitempty"`
 	Token    string          `json:"token,omitempty"`

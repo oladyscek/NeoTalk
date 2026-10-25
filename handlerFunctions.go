@@ -68,7 +68,7 @@ func sendMsgWS(c *Client, req *Packet) {
 
 	if !req.IsGroup {
 
-		_, ok := sendMsg(req, c.Name) //send to db, could be found in dbFunctions
+		_, id, ok := sendMsg(req, c.Name) //send to db, could be found in dbFunctions
 
 		if !ok {
 			c.send(Packet{Type: "msgStatus", Answer: "failed"})
@@ -76,11 +76,11 @@ func sendMsgWS(c *Client, req *Packet) {
 		}
 
 		if recipient != nil {
-			recipient.send(Packet{Type: "incomedMsg", From: c.Name, To: req.To, Text: req.Text})
+			recipient.send(Packet{Type: "incomedMsg", From: c.Name, To: req.To, MsgId: int(id), Text: req.Text})
 		}
-		c.send(Packet{Type: "msgStatus", Answer: "ok"})
+		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id)})
 	} else {
-		chatID, ok := sendMsg(req, c.Name)
+		chatID, id, ok := sendMsg(req, c.Name)
 
 		if !ok {
 			c.send(Packet{Type: "msgStatus", Answer: "failed"})
@@ -121,10 +121,12 @@ func sendMsgWS(c *Client, req *Packet) {
 			m.send(Packet{
 				Type:   "incomedMsg",
 				From:   c.Name,
+				MsgId: int(id),
 				ChatID: int(chatID),
 				Text:   req.Text,
 			})
 		}
+		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id)})
 	}
 }
 
@@ -247,5 +249,50 @@ func authWS(c *Client, req *Packet) {
 }
 
 func delMsgWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "delMsgStatus", Answer: "not logged in"})
+		return
+	}
+
+	group, isGroup, ok := delMsg(c.Name, req)
+
+	if !isGroup {
+		if ok {
+			c.send(Packet{Type: "delMsgStatus", Answer: "ok"})
+
+			mu.Lock()
+			r, exist := clients[group[0]]
+			mu.Unlock()
+
+			if exist {
+				r.send(Packet{Type: "delMsg", MsgId: req.MsgId})
+			}
+		} else {
+			c.send(Packet{Type: "delMsgStatus", Answer: "failed"})
+			return
+		}
+	} else {
+		if ok {
+			c.send(Packet{Type: "delMsgStatus", Answer: "ok"})
+
+			members := make([]*Client, 0, len(group))
+
+			mu.Lock()
+			for _, u := range group {
+				user, exist := clients[u]
+				if exist {
+					members = append(members, user)
+				}
+			}
+			mu.Unlock()
+
+			for _, cl := range members {
+				cl.send(Packet{Type: "delMsg", MsgId: req.MsgId})
+			}
+		} else {
+			c.send(Packet{Type: "delMsgStatus", Answer: "failed"})
+			return
+		}
+	}
 
 }

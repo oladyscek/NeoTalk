@@ -14,13 +14,11 @@
 
   <style>
     /* ================== GLOBAL STYLES ================== */
-    /* Hide auth screens if the user is already logged in (has a token) */
     .auth-pending #login-screen,
     .auth-pending #reg-screen {
       display: none !important;
     }
 
-    /* All screens are hidden by default, JS will toggle them */
     #coming-soon, #new-chat-screen, #new-group-screen, 
     #new-choice-screen, #chats, #reg-screen, #settings-screen {
       display: none; 
@@ -45,6 +43,36 @@
       20%,24%,55% { text-shadow: none; }
     }
 
+    /* ================== GLOBAL BUTTON STYLE ================== */
+    /* Все кнопки в приложении выглядят как на экране логина */
+    .screen button, 
+    .modal-content .action-btn, 
+    .modal-close, 
+    #msg-actions-btn, 
+    .sidebar-header button, 
+    .chat button, 
+    #mobile-back-btn {
+      font-family: 'Press Start 2P', monospace;
+      background-color: #1A0B2E; 
+      color: #E0D0FF; 
+      border: 2px solid #2e0777;
+      box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5);
+      transition: 0.1s; 
+      cursor: pointer;
+      outline: none;
+    }
+
+    .screen button:active, 
+    .modal-content .action-btn:active, 
+    .modal-close:active, 
+    #msg-actions-btn:active, 
+    .sidebar-header button:active, 
+    .chat button:active, 
+    #mobile-back-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
+    }
+
     /* ================== AUTH & MENU SCREENS ================== */
     .screen {
       display: flex; flex-direction: column; justify-content: center;
@@ -60,15 +88,10 @@
       background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777;
     }
     .screen input:focus { outline: none; border-color: #8a2be2; }
-
+    
     .screen button {
-      font-family: 'Press Start 2P', monospace;
-      background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777;
       margin-top: 20px; font-size: 24px; padding: 5px 60px;
-      box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5);
-      transition: 0.1s;
     }
-    .screen button:active { transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5); }
 
     /* ================== GROUP CHIPS (TAGS) ================== */
     #group-chips-container {
@@ -83,6 +106,7 @@
     .group-chip button {
       background: none; border: none; color: #E0D0FF; cursor: pointer;
       font-size: 14px; margin: 0; padding: 0; box-shadow: none; font-family: inherit;
+      outline: none;
     }
     .group-chip button:hover { color: #00FFFF; background: none; box-shadow: none; }
 
@@ -99,13 +123,11 @@
       text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2;
       display: flex; justify-content: space-between; align-items: center;
     }
+    
     .sidebar-header button {
-      font-family: 'Press Start 2P', monospace; background-color: #0D0221; color: #E0D0FF;
-      border: 2px solid #2e0777; font-size: 14px; padding: 4px 10px; cursor: pointer;
-      box-shadow: 0 2px 0 #0a0117; transition: 0.1s;
+      font-size: 14px; padding: 4px 10px;
     }
-    .sidebar-header button:hover { background-color: #2e0777; box-shadow: 0 2px 0 #0a0117, 0 0 8px #8a2be2; }
-    .sidebar-header button:active { transform: translateY(2px); box-shadow: none; }
+    .sidebar-header button:hover { background-color: #2e0777; box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5), 0 0 8px #8a2be2; }
 
     .chat-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
     .chat-list li {
@@ -115,24 +137,33 @@
     .chat-list li:hover { background: #2e0777; }
     .chat-list li.active { background: #2e0777; border-left: 3px solid #8a2be2; padding-left: 12px; }
 
-    .chat { flex: 1; display: flex; flex-direction: column; }
+    .chat { flex: 1; display: flex; flex-direction: column; position: relative; }
     .chat-header {
       padding: 15px; border-bottom: 2px solid #2e0777; font-size: 12px;
       text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2;
+      display: flex; justify-content: space-between; align-items: center;
     }
 
     .messages {
       flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto;
       display: flex; flex-direction: column; gap: 10px;
     }
-    /* Pushes messages to the bottom if there are only a few of them */
     .messages li:first-child { margin-top: auto; }
     .messages li {
       max-width: 60%; padding: 8px 12px; border: 2px solid #2e0777;
       background: #1A0B2E; word-wrap: break-word; font-size: 10px; line-height: 1.6;
+      user-select: none; -webkit-touch-callout: none;
+      transition: background 0.1s, border-color 0.1s;
     }
     .messages .own   { margin-right: auto; border-color: #8a2be2; box-shadow: 0 0 8px #8a2be2; }
     .messages .other { margin-right: auto; }
+    
+    /* Стиль для выделенного сообщения */
+    .messages li.selected {
+      background: #2e0777;
+      border-color: #00FFFF;
+      box-shadow: 0 0 10px #00FFFF;
+    }
 
     .send { display: flex; gap: 10px; padding: 15px; border-top: 2px solid #2e0777; }
     .send input {
@@ -140,74 +171,68 @@
       flex: 1; height: 50px; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777;
     }
     .send input:focus { outline: none; border-color: #8a2be2; }
+    
     .chat button {
-      font-family: 'Press Start 2P', monospace; background-color: #1A0B2E; color: #E0D0FF;
-      border-color: #2e0777; font-size: 30px; padding: 5px 30px;
-      box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5); transition: 0.1s;
+      font-size: 30px; padding: 5px 30px;
     }
-    .chat button:active { transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5); }
 
-    /* Hide scrollbars but keep scrolling functionality */
+    /* ================== SELECTION ACTIONS & MODAL ================== */
+    #msg-actions-btn {
+      display: none; /* Скрыта по умолчанию */
+      font-size: 20px; padding: 5px 15px;
+    }
+    
+    #context-modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(13, 2, 33, 0.85); z-index: 1000;
+      justify-content: center; align-items: center;
+      backdrop-filter: blur(3px);
+    }
+
+    .modal-content {
+      background: #1A0B2E; border: 2px solid #8a2be2;
+      box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777;
+      padding: 40px 30px 30px 30px; position: relative; 
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+      width: 350px; max-width: 90%; text-align: center;
+    }
+
+    .modal-content h2 {
+      color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2;
+    }
+
+    .modal-content .action-btn {
+      font-size: 20px; padding: 8px 0; width: 100%;
+    }
+
+    .modal-close {
+      position: absolute; top: 15px; right: 15px;
+      font-size: 20px; padding: 5px 12px;
+    }
+
+    /* Hide scrollbars */
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
     .chat-list, .messages { scrollbar-width: none; }
 
     /* ================== MOBILE ADAPTATION ================== */
     @media (max-width: 768px) {
-      /* Fix for mobile browser address bars */
-      body, .app, #chats {
-        height: 100dvh; 
-        height: 100dvh;
-      }
-
+      body, .app, #chats { height: 100dvh; }
       .screen h1 { font-size: 40px; margin-bottom: 40px; }
       .screen input { height: 40px; font-size: 16px; } 
       .screen button { font-size: 18px; padding: 10px 40px; } 
 
-      /* Layout changes for chat app */
-      .app {
-        position: relative;
-        overflow: hidden; /* Prevent scrolling of the whole body */
-      }
+      .app { position: relative; overflow: hidden; }
+      .sidebar { width: 100%; border-right: none; }
 
-      /* Sidebar takes full width on mobile */
-      .sidebar {
-        width: 100%;
-        border-right: none;
-      }
-
-      /* Chat area slides in from the right */
       .chat {
-        position: absolute;
-        top: 0;
-        left: 100%; /* Hidden to the right by default */
-        width: 100%;
-        height: 100%;
-        background: #0D0221; /* Match body background */
-        transition: left 0.3s ease-in-out;
-        z-index: 10;
+        position: absolute; top: 0; left: 100%; width: 100%; height: 100%;
+        background: #0D0221; transition: left 0.3s ease-in-out; z-index: 10;
       }
-
-      /* When this class is added to body, the chat slides in */
-      body.show-mobile-chat .chat {
-        left: 0;
-      }
-
-      /* Show the back button on mobile */
-      #mobile-back-btn {
-        display: block !important;
-      }
-
-      /* Adjust header to align back button and title */
-      .chat-header {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-
-      /* Messages take up more width on narrow screens */
-      .messages li {
-        max-width: 85%;
-      }
+      body.show-mobile-chat .chat { left: 0; }
+      #mobile-back-btn { display: block !important; }
+      
+      .chat-header { display: flex; align-items: center; gap: 15px; }
+      .messages li { max-width: 85%; }
     }
   </style>
   
@@ -218,8 +243,6 @@
 <body>
 
   <!-- ================== HTML SCREENS ================== -->
-  
-  <!-- Login Screen -->
   <div class="screen" id="login-screen">
     <h1>NeoTalk</h1>
     <input id="login-name" placeholder="Name">
@@ -229,7 +252,6 @@
     <h2>forgot password? xd lol</h2>
   </div>
 
-  <!-- Registration Screen -->
   <div class="screen" id="reg-screen">
     <h1>NeoTalk</h1>
     <input id="reg-name"  placeholder="Name">
@@ -239,7 +261,6 @@
     <button id="to-login">back to log in</button>
   </div>
 
-  <!-- Choice Screen (Chat or Group) -->
   <div class="screen" id="new-choice-screen">
     <h1>Create...</h1>
     <button id="choice-dm-btn">new chat</button>
@@ -247,7 +268,6 @@
     <button id="choice-back-btn">back</button>
   </div>
 
-  <!-- Direct Message Creation Screen -->
   <div class="screen" id="new-chat-screen">
     <h1>New Chat</h1>
     <input id="new-chat-input" placeholder="Username">
@@ -255,20 +275,15 @@
     <button id="cancel-chat-btn">back</button>
   </div>
 
-  <!-- Group Creation Screen -->
   <div class="screen" id="new-group-screen">
     <h1>New Group</h1>
     <input id="new-group-name" placeholder="Group Name">
-    
-    <!-- Chips (tags) for added members will be injected here by JS -->
     <div id="group-chips-container"></div>
-    
     <input id="new-group-member-input" placeholder="Add member (Enter)">
     <button id="create-group-btn">create</button>
     <button id="cancel-group-btn">back</button>
   </div>
 
-  <!-- Settings Screen -->
   <div class="screen" id="settings-screen">
     <h1>settings</h1>
     <button id="settingsProfileBtn">profile</button>
@@ -277,7 +292,6 @@
     <button id="backSettingsButton">back</button>
   </div>
 
-  <!-- Coming Soon Placeholder Screen -->
   <div class="screen" id="coming-soon">
     <h1>coming soon..</h1>
     <button id="soonBackBtn">back</button>
@@ -294,13 +308,16 @@
             <button id="settings-btn">⚙</button>
           </div>
         </div>
-        <ul class="chat-list"><!-- Chat list injected here by JS --></ul>
+        <ul class="chat-list"></ul>
       </aside>
 
       <main class="chat">
         <header class="chat-header">
-          <button id="mobile-back-btn" style="display: none; margin: 0; padding: 5px 10px; font-size: 14px;">←</button>
-          <span id="chat-title"></span>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <button id="mobile-back-btn" style="display: none; margin: 0;">←</button>
+            <span id="chat-title"></span>
+          </div>
+          <button id="msg-actions-btn">⋮</button>
         </header>
         <ul class="messages"></ul>
         <form class="send">
@@ -311,17 +328,31 @@
     </div>
   </div>
 
+  <!-- Модальное окно действий -->
+  <div id="context-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-modal-btn">×</button>
+      <h2>Actions</h2>
+      <button class="action-btn" id="modal-forward-btn">Forward</button>
+      <button class="action-btn" id="modal-delete-btn">Delete</button>
+    </div>
+  </div>
+
   <script>
   // ================== STATE ==================
   let myName = '';
   let currentChatId = null;
-  const chatsById = {};   // Map: chatId -> { id, chatName, isGroup }
-  let groupMembers = [];  // Temporary array to store group members before creating
+  const chatsById = {};
+  let groupMembers = [];
+  
+  // Selection State
+  let selectedMsgIds = new Set();
+  let touchTimer = null;
 
-  // Pagination State (Infinite Scroll)
-  let oldestMessageId = null;   // ID of the oldest loaded message
-  let hasMoreHistory = true;    // Server flag: are there older messages?
-  let isLoadingHistory = false; // Prevent spamming requests while scrolling
+  // Pagination State
+  let oldestMessageId = null;
+  let hasMoreHistory = true;
+  let isLoadingHistory = false;
 
   // ================== WEBSOCKET SETUP ==================
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -329,10 +360,8 @@
 
   ws.onopen = () => {
       console.log('ws connected');
-      // Check for saved session token and auto-authenticate
       const savedToken = localStorage.getItem('token');
       if (savedToken) {
-          console.log('trying auto-auth');
           send({ type: 'auth', token: savedToken });
       }
   };
@@ -346,7 +375,6 @@
   }
 
   // ================== DOM ELEMENTS ==================
-  // Screens
   const loginScreen    = document.getElementById('login-screen');
   const regScreen      = document.getElementById('reg-screen');
   const chatsScreen    = document.getElementById('chats');
@@ -356,7 +384,6 @@
   const newChatScreen   = document.getElementById('new-chat-screen');
   const newGroupScreen  = document.getElementById('new-group-screen');
 
-  // Auth Inputs & Buttons
   const loginNameInput = document.getElementById('login-name');
   const loginPassInput = document.getElementById('login-pass');
   const regNameInput   = document.getElementById('reg-name');
@@ -367,7 +394,6 @@
   const toRegBtn       = document.getElementById('to-register');
   const toLoginBtn     = document.getElementById('to-login');
 
-  // Settings & Navigation
   const settingsBtn        = document.getElementById('settings-btn');
   const backSettingsButton = document.getElementById('backSettingsButton');
   const settingsProfileBtn = document.getElementById('settingsProfileBtn');
@@ -375,14 +401,13 @@
   const settingsLangBtn    = document.getElementById('settingsLangBtn');
   const soonBackBtn        = document.getElementById('soonBackBtn');
 
-  // Chat Interface Elements
   const chatList     = document.querySelector('.chat-list');
-  const chatHeader   = document.querySelector('.chat-header');
   const messagesList = document.querySelector('.messages');
   const sendForm     = document.querySelector('.send');
   const sendInput    = sendForm.querySelector('input');
+  const chatTitle    = document.getElementById('chat-title');
+  const mobileBackBtn = document.getElementById('mobile-back-btn');
 
-  // Creation UI Elements
   const newChatBtn      = document.getElementById('new-chat-btn');
   const newChatInput    = document.getElementById('new-chat-input');
   const createChatBtn   = document.getElementById('create-chat-btn');
@@ -398,12 +423,15 @@
   const createGroupBtn      = document.getElementById('create-group-btn');
   const cancelGroupBtn      = document.getElementById('cancel-group-btn');
 
-  const chatTitle = document.getElementById('chat-title');
-  const mobileBackBtn = document.getElementById('mobile-back-btn');
+  // Selection & Modal Elements
+  const msgActionsBtn = document.getElementById('msg-actions-btn');
+  const contextModal  = document.getElementById('context-modal');
+  const closeModalBtn = document.getElementById('close-modal-btn');
+  const modalDeleteBtn = document.getElementById('modal-delete-btn');
+  const modalForwardBtn = document.getElementById('modal-forward-btn');
 
   // ================== INFINITE SCROLL LOGIC ==================
   messagesList.onscroll = () => {
-    // Trigger load only when scrolled to the top, there is more history, and no request is in progress
     if (messagesList.scrollTop === 0 && hasMoreHistory && !isLoadingHistory && currentChatId && oldestMessageId) {
       isLoadingHistory = true;
       send({ type: 'getHistory', chatId: currentChatId, beforeId: oldestMessageId });
@@ -420,14 +448,11 @@
 
   function showLogin() { hideAllScreens(); loginScreen.style.display = 'flex'; }
   function showReg() { hideAllScreens(); regScreen.style.display = 'flex'; }
-  
   function showChats() { 
     hideAllScreens(); 
     chatsScreen.style.display = 'block'; 
-    // Remove mobile class to ensure sidebar is visible when navigating back to chats
     document.body.classList.remove('show-mobile-chat');
   }
-  
   function showSettings() { hideAllScreens(); settingsScreen.style.display = 'flex'; }
   function showComingSoon() { hideAllScreens(); soonScreen.style.display = 'flex'; }
   function showNewChoice() { hideAllScreens(); newChoiceScreen.style.display = 'flex'; }
@@ -453,18 +478,13 @@
     const name  = regNameInput.value.trim();
     const pass  = regPassInput.value;
     const pass2 = regPass2Input.value;
-    
     const validName = /^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$/;
     
-    if (!validName.test(name)) {
-      return alert('Имя должно быть от 3 до 20 символов. Разрешены только буквы (рус/англ), цифры и _.');
-    }
-    
+    if (!validName.test(name)) return alert('Имя от 3 до 20 символов (буквы, цифры, _)');
     if (pass !== pass2) return alert('passwords do not match');
     send({ type: 'reg', name, password: pass });
   };
 
-  // Allow pressing 'Enter' in inputs to trigger the respective buttons
   [loginNameInput, loginPassInput].forEach(el =>
     el.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); }));
   [regNameInput, regPassInput, regPass2Input].forEach(el =>
@@ -474,15 +494,12 @@
   settingsBtn.onclick        = showSettings;
   settingsProfileBtn.onclick = showComingSoon;
   settingsLangBtn.onclick    = showComingSoon;
-
   settingsLogoutBtn.onclick = () => {
-    const token = localStorage.getItem('token');
-    if (token) send({ type: 'logout', token });
     localStorage.removeItem('token');
-    location.reload(); // Reload to clear memory and show login screen
+    location.reload();
   };
 
-    // ================== CREATE CHAT / GROUP LOGIC ==================
+  // ================== CREATE CHAT / GROUP LOGIC ==================
   newChatBtn.onclick = showNewChoice;
 
   choiceDmBtn.onclick = () => {
@@ -494,38 +511,31 @@
   choiceGroupBtn.onclick = () => {
     newGroupName.value = '';
     newGroupMemberInput.value = '';
-    groupMembers = []; // Reset members array
-    renderChips();     // Clear visual chips
+    groupMembers = [];
+    renderChips();
     showNewGroup();
     newGroupName.focus();
   };
 
-  // Render group member chips dynamically
   function renderChips() {
     groupChipsContainer.innerHTML = '';
     groupMembers.forEach((name, index) => {
       const chip = document.createElement('div');
       chip.className = 'group-chip';
       chip.textContent = name;
-      
       const btn = document.createElement('button');
       btn.textContent = '×';
       btn.onclick = () => {
-        groupMembers.splice(index, 1); // Remove from array
-        renderChips();                 // Re-render
+        groupMembers.splice(index, 1);
+        renderChips();
       };
-      
       chip.appendChild(btn);
       groupChipsContainer.appendChild(chip);
     });
   }
 
-  // Очистка имени от всех пробелов и запятых
-  function cleanMemberName(str) {
-    return str.replace(/[\s,]+/g, '');
-  }
+  function cleanMemberName(str) { return str.replace(/[\s,]+/g, ''); }
 
-  // Добавление участника из поля ввода в массив (для групп)
   function addMemberFromInput() {
     const name = cleanMemberName(newGroupMemberInput.value);
     if (name && !groupMembers.includes(name)) {
@@ -535,7 +545,6 @@
     newGroupMemberInput.value = '';
   }
 
-  // Слушаем Enter и запятую для добавления чипса
   newGroupMemberInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault(); 
@@ -543,35 +552,25 @@
     }
   });
 
-  // --- СОЗДАНИЕ ЛИЧНОГО ЧАТА ---
   createChatBtn.onclick = () => {
     const name = newChatInput.value.trim();
     if (!name) return;
     send({ type: 'createChat', to: name, isGroup: false });
   };
 
-  // --- СОЗДАНИЕ ГРУППЫ ---
   createGroupBtn.onclick = () => {
-    // Подхватываем последнее имя, если его ввели, но не нажали Enter
     addMemberFromInput(); 
-
     const gName = newGroupName.value.trim();
-    
     if (!gName) return alert('enter group name');
     if (groupMembers.length === 0) return alert('add at least one member');
-    
-    send({ 
-      type: 'createChat', 
-      isGroup: true, 
-      name: gName, 
-      data: groupMembers 
-    });
+    send({ type: 'createChat', isGroup: true, name: gName, data: groupMembers });
   };
+
   // ================== MOBILE NAVIGATION ==================
   mobileBackBtn.onclick = () => {
     document.body.classList.remove('show-mobile-chat');
-    // Remove active state from chat list
     document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
+    clearSelection(); 
   };
 
   // ================== INCOMING WEBSOCKET MESSAGES ==================
@@ -584,7 +583,7 @@
       case 'authStatus':
         if (p.answer === 'ok') {
             myName = p.name;
-            document.documentElement.classList.remove('auth-pending'); // Show UI
+            document.documentElement.classList.remove('auth-pending');
             send({ type: 'getChats' });
             showChats();
         } else {
@@ -593,7 +592,6 @@
             showLogin();
         }
         break;
-
       case 'loginStatus':
         if (p.answer === 'ok') {
           myName = loginNameInput.value.trim();
@@ -601,11 +599,8 @@
           document.documentElement.classList.remove('auth-pending');
           send({ type: 'getChats' });
           showChats();
-        } else {
-          alert('login: ' + p.answer);
-        }
+        } else alert('login: ' + p.answer);
         break;
-
       case 'regStatus':
         if (p.answer === 'ok') {
           myName = regNameInput.value.trim();
@@ -613,43 +608,54 @@
           document.documentElement.classList.remove('auth-pending');
           send({ type: 'getChats' });
           showChats();
-        } else {
-          alert('reg: ' + p.answer);
-        }
+        } else alert('reg: ' + p.answer);
         break;
-
       case 'getChatStatus':
-        if (p.answer === 'ok') {
-          renderChatList(p.data || []);
-        }
+        if (p.answer === 'ok') renderChatList(p.data || []);
         break;
-
       case 'getHistoryStatus':
         if (p.answer === 'ok') {
-          hasMoreHistory = !!p.hasMore; // Force to boolean in case it's undefined
+          hasMoreHistory = !!p.hasMore;
           renderHistory(p.data || []);
           isLoadingHistory = false;
-        } else {
-          isLoadingHistory = false;
-        }
+        } else isLoadingHistory = false;
         break;
-
       case 'incomedMsg':
         handleIncomingMsg(p);
         break;
-
       case 'newChatStatus':
         if (p.answer === 'ok') {
           showChats(); 
-          send({ type: 'getChats' }); // Refresh chat list to include the new one
-        } else {
-          alert('create error: ' + p.answer);
+          send({ type: 'getChats' });
+        } else alert('create error: ' + p.answer);
+        break;
+      case 'newChat':
+        send({ type: 'getChats' });
+        break;
+      
+      // === НОВЫЙ ОБРАБОТЧИК ДЛЯ ПРИВЯЗКИ ID ===
+      case 'msgStatus':
+        if (p.answer === 'ok' && p.msgId) {
+          // Ищем последнее сообщение от себя, у которого еще нет ID
+          const myMsgs = messagesList.querySelectorAll('.own:not([data-msg-id])');
+          if (myMsgs.length > 0) {
+            const lastMsg = myMsgs[myMsgs.length - 1];
+            lastMsg.dataset.msgId = p.msgId;
+          }
+        } else if (p.answer === 'failed') {
+          alert('Ошибка отправки сообщения');
         }
         break;
         
-      case 'newChat':
-        // We were added to a new chat/group by someone else
-        send({ type: 'getChats' });
+      case 'delMsg':
+        const el = document.querySelector(`li[data-msg-id="${p.msgId}"]`);
+        if (el) el.remove();
+        break;
+        
+      case 'delMsgStatus':
+        if (p.answer === 'failed') {
+          alert('Не удалось удалить сообщение.');
+        }
         break;
     }
   };
@@ -657,10 +663,10 @@
   // ================== CHAT LIST RENDERING ==================
   function renderChatList(chats) {
     chatList.innerHTML = '';
-    Object.keys(chatsById).forEach(k => delete chatsById[k]); // Clear map
+    Object.keys(chatsById).forEach(k => delete chatsById[k]);
 
     if (!chats.length) {
-      chatTitle.textContent = ''; // Clear title only, do not destroy header
+      chatTitle.textContent = '';
       messagesList.innerHTML = '';
       return;
     }
@@ -673,11 +679,8 @@
       chatList.appendChild(li);
     });
 
-    // Auto-select the first chat ONLY on desktop. On mobile, let the user see the chat list first.
     const first = chatList.querySelector('li');
-    if (first && window.innerWidth > 768) {
-      selectChat(first);
-    }
+    if (first && window.innerWidth > 768) selectChat(first);
   }
 
   chatList.onclick = (e) => {
@@ -690,27 +693,27 @@
 
     currentChatId = parseInt(li.dataset.chatId);
     const chat = chatsById[currentChatId];
-    
-    // Write chat name to the span inside header, not destroying the whole header
     chatTitle.textContent = chat ? chat.chatName : '?';
 
-    // Reset pagination state
     oldestMessageId = null;
     hasMoreHistory = true;
     isLoadingHistory = false;
     messagesList.innerHTML = '';
+    clearSelection();
 
-    // On mobile, slide the chat area into view
     document.body.classList.add('show-mobile-chat');
-
     if (chat) send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
   }
 
   // ================== MESSAGE RENDERING ==================
-  function createMessageEl(sender, text) {
+  function createMessageEl(sender, text, msgId) {
     const li = document.createElement('li');
-    li.className = (sender === myName) ? 'own' : 'other'; // Right/Left alignment
+    li.className = (sender === myName) ? 'own' : 'other';
     li.textContent = sender + ': ' + text;
+    
+    if (msgId) {
+        li.dataset.msgId = msgId;
+    }
     return li;
   }
 
@@ -721,42 +724,31 @@
     }
 
     if (oldestMessageId !== null) {
-      // LOADING OLDER MESSAGES (Infinite scroll up)
-      const prevHeight = messagesList.scrollHeight; // Save current scroll height
-
-      // Prepend messages to the top (reversed because server sends newest first)
+      const prevHeight = messagesList.scrollHeight;
       for (let i = msgs.length - 1; i >= 0; i--) {
         const m = msgs[i];
-        const li = createMessageEl(m.sender, m.message);
+        const li = createMessageEl(m.sender, m.message, m.id);
         messagesList.insertBefore(li, messagesList.firstChild);
       }
-
-      // Maintain scroll position so viewport doesn't jump when messages are added above
       const newHeight = messagesList.scrollHeight;
       messagesList.scrollTop += (newHeight - prevHeight);
     } else {
-      // INITIAL CHAT LOAD
       messagesList.innerHTML = '';
       msgs.forEach(m => {
-        const li = createMessageEl(m.sender, m.message);
+        const li = createMessageEl(m.sender, m.message, m.id);
         messagesList.appendChild(li);
       });
-      // Scroll to bottom
       messagesList.scrollTop = messagesList.scrollHeight;
     }
-
-    // Update cursor: msgs[0] is the oldest message in this batch
     oldestMessageId = msgs[0].id;
   }
 
-  function addMessage(sender, text) {
-    // Check if user is already at the bottom (within 50px tolerance)
+  function addMessage(sender, text, msgId) {
     const isAtBottom = messagesList.scrollHeight - messagesList.scrollTop - messagesList.clientHeight < 50;
     
-    const li = createMessageEl(sender, text);
+    const li = createMessageEl(sender, text, msgId);
     messagesList.appendChild(li);
 
-    // Auto-scroll only if we sent the message OR we were already reading the bottom
     if (sender === myName || isAtBottom) {
       messagesList.scrollTop = messagesList.scrollHeight;
     }
@@ -772,14 +764,12 @@
     if (!chat) return;
 
     if (chat.isGroup) {
-      // Group chat: we identify the destination by chatId
       send({ type: 'sendMsg', chatId: currentChatId, text, isGroup: true });
     } else {
-      // DM: we identify the destination by the recipient's username
       send({ type: 'sendMsg', to: chat.chatName, text, isGroup: false });
     }
 
-    addMessage(myName, text); // Local echo: display immediately without waiting for server
+    addMessage(myName, text, null); 
     sendInput.value = '';
     sendInput.focus();
   };
@@ -787,22 +777,118 @@
   // ================== HANDLE INCOMING MESSAGES ==================
   function handleIncomingMsg(p) {
     const chat = chatsById[currentChatId];
+    const msgId = p.msgId || p.id;
 
-    // If it's for a group and matches our current open group
     if (p.chatId && p.chatId === currentChatId) {
-      addMessage(p.from, p.text);
+      addMessage(p.from, p.text, msgId);
       return;
     }
 
-    // If it's a DM and matches our currently open DM (checking by sender name)
     if (!p.chatId && chat && !chat.isGroup && chat.chatName === p.from) {
-      addMessage(p.from, p.text);
+      addMessage(p.from, p.text, msgId);
       return;
     }
-
-    // Optional: handle messages coming to other chats (e.g., unread badges later)
-    console.log('msg for other chat:', p);
   }
+
+  // ================== MESSAGE SELECTION LOGIC ==================
+  
+  // 1. Обработка ПКМ (Правая кнопка мыши)
+  messagesList.addEventListener('contextmenu', (e) => {
+    const li = e.target.closest('li');
+    if (!li || !li.dataset.msgId) return;
+    e.preventDefault();
+    toggleSelection(li);
+  });
+
+  // 2. Обработка долгого нажатия (Телефоны)
+  messagesList.addEventListener('touchstart', (e) => {
+    const li = e.target.closest('li');
+    if (!li || !li.dataset.msgId) return;
+    
+    touchTimer = setTimeout(() => {
+      toggleSelection(li);
+      if (navigator.vibrate) navigator.vibrate(50); 
+    }, 500);
+  });
+
+  messagesList.addEventListener('touchend', () => clearTimeout(touchTimer));
+  messagesList.addEventListener('touchmove', () => clearTimeout(touchTimer));
+
+  // 3. Обычный клик (если уже есть выделенные)
+  messagesList.addEventListener('click', (e) => {
+    if (selectedMsgIds.size > 0) {
+      const li = e.target.closest('li');
+      if (li && li.dataset.msgId) {
+        toggleSelection(li);
+      } else {
+        clearSelection();
+      }
+    }
+  });
+
+  function toggleSelection(li) {
+    const id = li.dataset.msgId;
+    if (selectedMsgIds.has(id)) {
+      selectedMsgIds.delete(id);
+      li.classList.remove('selected');
+    } else {
+      selectedMsgIds.add(id);
+      li.classList.add('selected');
+    }
+    
+    if (selectedMsgIds.size > 0) {
+      msgActionsBtn.style.display = 'block';
+      msgActionsBtn.textContent = `⋮ (${selectedMsgIds.size})`;
+    } else {
+      msgActionsBtn.style.display = 'none';
+    }
+  }
+
+  function clearSelection() {
+    selectedMsgIds.clear();
+    document.querySelectorAll('.messages li.selected').forEach(el => el.classList.remove('selected'));
+    msgActionsBtn.style.display = 'none';
+  }
+
+  // ================== MODAL LOGIC ==================
+  msgActionsBtn.onclick = () => {
+    if (selectedMsgIds.size > 0) {
+      contextModal.style.display = 'flex';
+    }
+  };
+
+  closeModalBtn.onclick = () => {
+    contextModal.style.display = 'none';
+  };
+
+  contextModal.onclick = (e) => {
+    if (e.target === contextModal) {
+      contextModal.style.display = 'none';
+    }
+  };
+
+  modalForwardBtn.onclick = () => {
+    alert('Пересылка сообщений появится в будущих обновлениях!');
+    contextModal.style.display = 'none';
+  };
+
+  // УДАЛЕНИЕ
+  modalDeleteBtn.onclick = () => {
+    selectedMsgIds.forEach(id => {
+      send({ 
+        type: 'delMsg', 
+        msgId: parseInt(id), 
+        chatId: currentChatId 
+      });
+      
+      const el = document.querySelector(`li[data-msg-id="${id}"]`);
+      if (el) el.remove();
+    });
+    
+    clearSelection();
+    contextModal.style.display = 'none';
+  };
+
   </script>
 </body>
 </html>
