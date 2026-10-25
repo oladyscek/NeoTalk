@@ -44,173 +44,68 @@
     }
 
     /* ================== GLOBAL BUTTON STYLE ================== */
-    /* Все кнопки в приложении выглядят как на экране логина */
-    .screen button, 
-    .modal-content .action-btn, 
-    .modal-close, 
-    #msg-actions-btn, 
-    .sidebar-header button, 
-    .chat button, 
-    #mobile-back-btn {
+    .screen button, .modal-content .action-btn, .modal-close, #msg-actions-btn, .sidebar-header button, .chat button, #mobile-back-btn {
       font-family: 'Press Start 2P', monospace;
-      background-color: #1A0B2E; 
-      color: #E0D0FF; 
-      border: 2px solid #2e0777;
+      background-color: #1A0B2E; color: #E0D0FF; border: 2px solid #2e0777;
       box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5);
-      transition: 0.1s; 
-      cursor: pointer;
-      outline: none;
+      transition: 0.1s; cursor: pointer; outline: none;
     }
 
-    .screen button:active, 
-    .modal-content .action-btn:active, 
-    .modal-close:active, 
-    #msg-actions-btn:active, 
-    .sidebar-header button:active, 
-    .chat button:active, 
-    #mobile-back-btn:active {
-      transform: translateY(4px);
-      box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
+    .screen button:active, .modal-content .action-btn:active, .modal-close:active, #msg-actions-btn:active, .sidebar-header button:active, .chat button:active, #mobile-back-btn:active {
+      transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
     }
 
     /* ================== AUTH & MENU SCREENS ================== */
-    .screen {
-      display: flex; flex-direction: column; justify-content: center;
-      align-items: center; height: 95vh; color: #E0D0FF;
-    }
-
+    .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 95vh; color: #E0D0FF; }
     .screen h1 { animation: flicker 3s infinite; font-size: 64px; margin-bottom: 70px; }
     .screen h2 { margin-top: 30px; font-size: 10px; color: #4f328a; }
-
-    .screen input {
-      caret-color: #8a2be2; font-family: 'Press Start 2P', monospace;
-      margin-bottom: 10px; height: 30px; width: 320px; max-width: 90%;
-      background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777;
-    }
+    .screen input { caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; margin-bottom: 10px; height: 30px; width: 320px; max-width: 90%; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; }
     .screen input:focus { outline: none; border-color: #8a2be2; }
-    
-    .screen button {
-      margin-top: 20px; font-size: 24px; padding: 5px 60px;
-    }
+    .screen button { margin-top: 20px; font-size: 24px; padding: 5px 60px; }
 
-    /* ================== GROUP CHIPS (TAGS) ================== */
-    #group-chips-container {
-      display: flex; flex-wrap: wrap; justify-content: center;
-      gap: 10px; margin-bottom: 15px; max-width: 320px;
-    }
-    .group-chip {
-      background-color: #2e0777; color: #E0D0FF; border: 2px solid #8a2be2;
-      padding: 5px 10px; font-size: 12px; display: flex; align-items: center;
-      gap: 8px; font-family: 'Press Start 2P', monospace; box-shadow: 0 0 8px #8a2be2;
-    }
-    .group-chip button {
-      background: none; border: none; color: #E0D0FF; cursor: pointer;
-      font-size: 14px; margin: 0; padding: 0; box-shadow: none; font-family: inherit;
-      outline: none;
-    }
+    /* ================== GROUP CHIPS ================== */
+    #group-chips-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px; max-width: 320px; }
+    .group-chip { background-color: #2e0777; color: #E0D0FF; border: 2px solid #8a2be2; padding: 5px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; font-family: 'Press Start 2P', monospace; box-shadow: 0 0 8px #8a2be2; }
+    .group-chip button { background: none; border: none; color: #E0D0FF; cursor: pointer; font-size: 14px; margin: 0; padding: 0; box-shadow: none; font-family: inherit; outline: none; }
     .group-chip button:hover { color: #00FFFF; background: none; box-shadow: none; }
 
     /* ================== CHAT INTERFACE ================== */
     #chats { height: 100vh; }
     .app { display: flex; height: 100vh; color: #E0D0FF; }
-
-    .sidebar {
-      width: 220px; background: #1A0B2E; border-right: 2px solid #2e0777;
-      display: flex; flex-direction: column;
-    }
-    .sidebar-header {
-      padding: 15px; font-size: 12px; border-bottom: 2px solid #2e0777;
-      text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    
-    .sidebar-header button {
-      font-size: 14px; padding: 4px 10px;
-    }
+    .sidebar { width: 220px; background: #1A0B2E; border-right: 2px solid #2e0777; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 15px; font-size: 12px; border-bottom: 2px solid #2e0777; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
+    .sidebar-header button { font-size: 14px; padding: 4px 10px; }
     .sidebar-header button:hover { background-color: #2e0777; box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5), 0 0 8px #8a2be2; }
 
     .chat-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-    .chat-list li {
-      padding: 12px 15px; border-bottom: 1px solid #2e0777;
-      cursor: pointer; font-size: 10px; transition: background 0.15s;
-    }
+    .chat-list li { padding: 12px 15px; border-bottom: 1px solid #2e0777; cursor: pointer; font-size: 10px; transition: background 0.15s; }
     .chat-list li:hover { background: #2e0777; }
     .chat-list li.active { background: #2e0777; border-left: 3px solid #8a2be2; padding-left: 12px; }
 
     .chat { flex: 1; display: flex; flex-direction: column; position: relative; }
-    .chat-header {
-      padding: 15px; border-bottom: 2px solid #2e0777; font-size: 12px;
-      text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2;
-      display: flex; justify-content: space-between; align-items: center;
-    }
+    .chat-header { padding: 15px; border-bottom: 2px solid #2e0777; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
 
-    .messages {
-      flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto;
-      display: flex; flex-direction: column; gap: 10px;
-    }
+    .messages { flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .messages li:first-child { margin-top: auto; }
-    .messages li {
-      max-width: 60%; padding: 8px 12px; border: 2px solid #2e0777;
-      background: #1A0B2E; word-wrap: break-word; font-size: 10px; line-height: 1.6;
-      user-select: none; -webkit-touch-callout: none;
-      transition: background 0.1s, border-color 0.1s;
-    }
+    .messages li { max-width: 60%; padding: 8px 12px; border: 2px solid #2e0777; background: #1A0B2E; word-wrap: break-word; font-size: 10px; line-height: 1.6; user-select: none; -webkit-touch-callout: none; transition: background 0.1s, border-color 0.1s; }
     .messages .own   { margin-right: auto; border-color: #8a2be2; box-shadow: 0 0 8px #8a2be2; }
     .messages .other { margin-right: auto; }
-    
-    /* Стиль для выделенного сообщения */
-    .messages li.selected {
-      background: #2e0777;
-      border-color: #00FFFF;
-      box-shadow: 0 0 10px #00FFFF;
-    }
+    .messages li.selected { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
 
     .send { display: flex; gap: 10px; padding: 15px; border-top: 2px solid #2e0777; }
-    .send input {
-      caret-color: #8a2be2; font-family: 'Press Start 2P', monospace;
-      flex: 1; height: 50px; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777;
-    }
+    .send input { caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; flex: 1; height: 50px; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; }
     .send input:focus { outline: none; border-color: #8a2be2; }
-    
-    .chat button {
-      font-size: 30px; padding: 5px 30px;
-    }
+    .chat button { font-size: 30px; padding: 5px 30px; }
 
     /* ================== SELECTION ACTIONS & MODAL ================== */
-    #msg-actions-btn {
-      display: none; /* Скрыта по умолчанию */
-      font-size: 20px; padding: 5px 15px;
-    }
+    #msg-actions-btn { display: none; font-size: 20px; padding: 5px 15px; }
     
-    #context-modal {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(13, 2, 33, 0.85); z-index: 1000;
-      justify-content: center; align-items: center;
-      backdrop-filter: blur(3px);
-    }
+    #context-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 2, 33, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+    .modal-content { background: #1A0B2E; border: 2px solid #8a2be2; box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777; padding: 40px 30px 30px 30px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 20px; width: 350px; max-width: 90%; text-align: center; }
+    .modal-content h2 { color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2; }
+    .modal-content .action-btn { font-size: 20px; padding: 8px 0; width: 100%; }
+    .modal-close { position: absolute; top: 15px; right: 15px; font-size: 20px; padding: 5px 12px; }
 
-    .modal-content {
-      background: #1A0B2E; border: 2px solid #8a2be2;
-      box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777;
-      padding: 40px 30px 30px 30px; position: relative; 
-      display: flex; flex-direction: column; align-items: center; gap: 20px;
-      width: 350px; max-width: 90%; text-align: center;
-    }
-
-    .modal-content h2 {
-      color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2;
-    }
-
-    .modal-content .action-btn {
-      font-size: 20px; padding: 8px 0; width: 100%;
-    }
-
-    .modal-close {
-      position: absolute; top: 15px; right: 15px;
-      font-size: 20px; padding: 5px 12px;
-    }
-
-    /* Hide scrollbars */
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
     .chat-list, .messages { scrollbar-width: none; }
 
@@ -224,10 +119,7 @@
       .app { position: relative; overflow: hidden; }
       .sidebar { width: 100%; border-right: none; }
 
-      .chat {
-        position: absolute; top: 0; left: 100%; width: 100%; height: 100%;
-        background: #0D0221; transition: left 0.3s ease-in-out; z-index: 10;
-      }
+      .chat { position: absolute; top: 0; left: 100%; width: 100%; height: 100%; background: #0D0221; transition: left 0.3s ease-in-out; z-index: 10; }
       body.show-mobile-chat .chat { left: 0; }
       #mobile-back-btn { display: block !important; }
       
@@ -242,7 +134,7 @@
 
 <body>
 
-  <!-- ================== HTML SCREENS ================== -->
+  <!-- HTML SCREENS -->
   <div class="screen" id="login-screen">
     <h1>NeoTalk</h1>
     <input id="login-name" placeholder="Name">
@@ -348,6 +240,7 @@
   // Selection State
   let selectedMsgIds = new Set();
   let touchTimer = null;
+  let isLongPress = false; // Флаг для мобилок
 
   // Pagination State
   let oldestMessageId = null;
@@ -361,9 +254,7 @@
   ws.onopen = () => {
       console.log('ws connected');
       const savedToken = localStorage.getItem('token');
-      if (savedToken) {
-          send({ type: 'auth', token: savedToken });
-      }
+      if (savedToken) send({ type: 'auth', token: savedToken });
   };
 
   ws.onclose   = () => console.log('ws closed');
@@ -423,7 +314,6 @@
   const createGroupBtn      = document.getElementById('create-group-btn');
   const cancelGroupBtn      = document.getElementById('cancel-group-btn');
 
-  // Selection & Modal Elements
   const msgActionsBtn = document.getElementById('msg-actions-btn');
   const contextModal  = document.getElementById('context-modal');
   const closeModalBtn = document.getElementById('close-modal-btn');
@@ -440,26 +330,19 @@
 
   // ================== SCREEN MANAGEMENT ==================
   function hideAllScreens() {
-    [loginScreen, regScreen, chatsScreen, settingsScreen, soonScreen, 
-     newChoiceScreen, newChatScreen, newGroupScreen].forEach(el => {
-      el.style.display = 'none';
-    });
+    [loginScreen, regScreen, chatsScreen, settingsScreen, soonScreen, newChoiceScreen, newChatScreen, newGroupScreen].forEach(el => el.style.display = 'none');
   }
 
   function showLogin() { hideAllScreens(); loginScreen.style.display = 'flex'; }
   function showReg() { hideAllScreens(); regScreen.style.display = 'flex'; }
-  function showChats() { 
-    hideAllScreens(); 
-    chatsScreen.style.display = 'block'; 
-    document.body.classList.remove('show-mobile-chat');
-  }
+  function showChats() { hideAllScreens(); chatsScreen.style.display = 'block'; document.body.classList.remove('show-mobile-chat'); }
   function showSettings() { hideAllScreens(); settingsScreen.style.display = 'flex'; }
   function showComingSoon() { hideAllScreens(); soonScreen.style.display = 'flex'; }
   function showNewChoice() { hideAllScreens(); newChoiceScreen.style.display = 'flex'; }
   function showNewChat() { hideAllScreens(); newChatScreen.style.display = 'flex'; }
   function showNewGroup() { hideAllScreens(); newGroupScreen.style.display = 'flex'; }
 
-  toRegBtn.onclick   = showReg;
+  toRegBtn.onclick = showReg;
   toLoginBtn.onclick = showLogin;
   soonBackBtn.onclick = showSettings;
   backSettingsButton.onclick = showChats;
@@ -467,7 +350,7 @@
   cancelChatBtn.onclick = showChats;
   cancelGroupBtn.onclick = showChats;
 
-  // ================== AUTHENTICATION ACTIONS ==================
+  // ================== AUTH ACTIONS ==================
   loginBtn.onclick = () => {
     const name = loginNameInput.value.trim();
     if (!name) return alert('enter name');
@@ -478,43 +361,27 @@
     const name  = regNameInput.value.trim();
     const pass  = regPassInput.value;
     const pass2 = regPass2Input.value;
-    const validName = /^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$/;
-    
-    if (!validName.test(name)) return alert('Имя от 3 до 20 символов (буквы, цифры, _)');
+    if (!/^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$/.test(name)) return alert('Имя от 3 до 20 символов');
     if (pass !== pass2) return alert('passwords do not match');
     send({ type: 'reg', name, password: pass });
   };
 
-  [loginNameInput, loginPassInput].forEach(el =>
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); }));
-  [regNameInput, regPassInput, regPass2Input].forEach(el =>
-    el.addEventListener('keydown', e => { if (e.key === 'Enter') registerBtn.click(); }));
+  [loginNameInput, loginPassInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); }));
+  [regNameInput, regPassInput, regPass2Input].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') registerBtn.click(); }));
 
   // ================== SETTINGS ACTIONS ==================
-  settingsBtn.onclick        = showSettings;
+  settingsBtn.onclick = showSettings;
   settingsProfileBtn.onclick = showComingSoon;
-  settingsLangBtn.onclick    = showComingSoon;
-  settingsLogoutBtn.onclick = () => {
-    localStorage.removeItem('token');
-    location.reload();
-  };
+  settingsLangBtn.onclick = showComingSoon;
+  settingsLogoutBtn.onclick = () => { localStorage.removeItem('token'); location.reload(); };
 
-  // ================== CREATE CHAT / GROUP LOGIC ==================
+  // ================== CREATE CHAT / GROUP ==================
   newChatBtn.onclick = showNewChoice;
 
-  choiceDmBtn.onclick = () => {
-    newChatInput.value = '';
-    showNewChat();
-    newChatInput.focus();
-  };
-
+  choiceDmBtn.onclick = () => { newChatInput.value = ''; showNewChat(); newChatInput.focus(); };
   choiceGroupBtn.onclick = () => {
-    newGroupName.value = '';
-    newGroupMemberInput.value = '';
-    groupMembers = [];
-    renderChips();
-    showNewGroup();
-    newGroupName.focus();
+    newGroupName.value = ''; newGroupMemberInput.value = ''; groupMembers = [];
+    renderChips(); showNewGroup(); newGroupName.focus();
   };
 
   function renderChips() {
@@ -525,31 +392,21 @@
       chip.textContent = name;
       const btn = document.createElement('button');
       btn.textContent = '×';
-      btn.onclick = () => {
-        groupMembers.splice(index, 1);
-        renderChips();
-      };
+      btn.onclick = () => { groupMembers.splice(index, 1); renderChips(); };
       chip.appendChild(btn);
       groupChipsContainer.appendChild(chip);
     });
   }
 
   function cleanMemberName(str) { return str.replace(/[\s,]+/g, ''); }
-
   function addMemberFromInput() {
     const name = cleanMemberName(newGroupMemberInput.value);
-    if (name && !groupMembers.includes(name)) {
-      groupMembers.push(name);
-      renderChips();
-    }
+    if (name && !groupMembers.includes(name)) { groupMembers.push(name); renderChips(); }
     newGroupMemberInput.value = '';
   }
 
   newGroupMemberInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault(); 
-      addMemberFromInput();
-    }
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addMemberFromInput(); }
   });
 
   createChatBtn.onclick = () => {
@@ -624,38 +481,24 @@
         handleIncomingMsg(p);
         break;
       case 'newChatStatus':
-        if (p.answer === 'ok') {
-          showChats(); 
-          send({ type: 'getChats' });
-        } else alert('create error: ' + p.answer);
+        if (p.answer === 'ok') { showChats(); send({ type: 'getChats' }); } 
+        else alert('create error: ' + p.answer);
         break;
       case 'newChat':
         send({ type: 'getChats' });
         break;
-      
-      // === НОВЫЙ ОБРАБОТЧИК ДЛЯ ПРИВЯЗКИ ID ===
       case 'msgStatus':
         if (p.answer === 'ok' && p.msgId) {
-          // Ищем последнее сообщение от себя, у которого еще нет ID
           const myMsgs = messagesList.querySelectorAll('.own:not([data-msg-id])');
-          if (myMsgs.length > 0) {
-            const lastMsg = myMsgs[myMsgs.length - 1];
-            lastMsg.dataset.msgId = p.msgId;
-          }
-        } else if (p.answer === 'failed') {
-          alert('Ошибка отправки сообщения');
-        }
+          if (myMsgs.length > 0) myMsgs[myMsgs.length - 1].dataset.msgId = p.msgId;
+        } else if (p.answer === 'failed') alert('Ошибка отправки сообщения');
         break;
-        
       case 'delMsg':
         const el = document.querySelector(`li[data-msg-id="${p.msgId}"]`);
         if (el) el.remove();
         break;
-        
       case 'delMsgStatus':
-        if (p.answer === 'failed') {
-          alert('Не удалось удалить сообщение.');
-        }
+        if (p.answer === 'failed') alert('Не удалось удалить сообщение.');
         break;
     }
   };
@@ -710,10 +553,7 @@
     const li = document.createElement('li');
     li.className = (sender === myName) ? 'own' : 'other';
     li.textContent = sender + ': ' + text;
-    
-    if (msgId) {
-        li.dataset.msgId = msgId;
-    }
+    if (msgId) li.dataset.msgId = msgId;
     return li;
   }
 
@@ -745,13 +585,9 @@
 
   function addMessage(sender, text, msgId) {
     const isAtBottom = messagesList.scrollHeight - messagesList.scrollTop - messagesList.clientHeight < 50;
-    
     const li = createMessageEl(sender, text, msgId);
     messagesList.appendChild(li);
-
-    if (sender === myName || isAtBottom) {
-      messagesList.scrollTop = messagesList.scrollHeight;
-    }
+    if (sender === myName || isAtBottom) messagesList.scrollTop = messagesList.scrollHeight;
   }
 
   // ================== SEND MESSAGE ==================
@@ -763,18 +599,14 @@
     const chat = chatsById[currentChatId];
     if (!chat) return;
 
-    if (chat.isGroup) {
-      send({ type: 'sendMsg', chatId: currentChatId, text, isGroup: true });
-    } else {
-      send({ type: 'sendMsg', to: chat.chatName, text, isGroup: false });
-    }
+    if (chat.isGroup) send({ type: 'sendMsg', chatId: currentChatId, text, isGroup: true });
+    else send({ type: 'sendMsg', to: chat.chatName, text, isGroup: false });
 
     addMessage(myName, text, null); 
     sendInput.value = '';
     sendInput.focus();
   };
 
-  // ================== HANDLE INCOMING MESSAGES ==================
   function handleIncomingMsg(p) {
     const chat = chatsById[currentChatId];
     const msgId = p.msgId || p.id;
@@ -791,31 +623,45 @@
   }
 
   // ================== MESSAGE SELECTION LOGIC ==================
-  
-  // 1. Обработка ПКМ (Правая кнопка мыши)
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // 1. ПКМ (Десктоп)
   messagesList.addEventListener('contextmenu', (e) => {
     const li = e.target.closest('li');
     if (!li || !li.dataset.msgId) return;
-    e.preventDefault();
+    e.preventDefault(); // Отменяем стандартное меню
+    
+    // На тач-устройствах не обрабатываем это событие, чтобы не было двойного срабатывания
+    if (isTouchDevice) return; 
+    
     toggleSelection(li);
   });
 
-  // 2. Обработка долгого нажатия (Телефоны)
+  // 2. Долгое нажатие (Мобилки)
   messagesList.addEventListener('touchstart', (e) => {
     const li = e.target.closest('li');
     if (!li || !li.dataset.msgId) return;
     
+    isLongPress = false; // Сбрасываем флаг при каждом новом касании
+    
     touchTimer = setTimeout(() => {
+      isLongPress = true; // Запоминаем, что это было долгое нажатие
       toggleSelection(li);
       if (navigator.vibrate) navigator.vibrate(50); 
     }, 500);
-  });
+  }, { passive: true });
 
+  messagesList.addEventListener('touchmove', () => clearTimeout(touchTimer), { passive: true });
   messagesList.addEventListener('touchend', () => clearTimeout(touchTimer));
-  messagesList.addEventListener('touchmove', () => clearTimeout(touchTimer));
 
-  // 3. Обычный клик (если уже есть выделенные)
+  // 3. Обычный клик (Тап на мобилке или клик на ПК)
   messagesList.addEventListener('click', (e) => {
+    // Если клик был вызван отпусканием пальца после долгого нажатия — игнорируем его
+    if (isLongPress) {
+      isLongPress = false; 
+      return;
+    }
+
     if (selectedMsgIds.size > 0) {
       const li = e.target.closest('li');
       if (li && li.dataset.msgId) {
@@ -851,20 +697,11 @@
   }
 
   // ================== MODAL LOGIC ==================
-  msgActionsBtn.onclick = () => {
-    if (selectedMsgIds.size > 0) {
-      contextModal.style.display = 'flex';
-    }
-  };
-
-  closeModalBtn.onclick = () => {
-    contextModal.style.display = 'none';
-  };
-
+  msgActionsBtn.onclick = () => { if (selectedMsgIds.size > 0) contextModal.style.display = 'flex'; };
+  closeModalBtn.onclick = () => contextModal.style.display = 'none';
+  
   contextModal.onclick = (e) => {
-    if (e.target === contextModal) {
-      contextModal.style.display = 'none';
-    }
+    if (e.target === contextModal) contextModal.style.display = 'none';
   };
 
   modalForwardBtn.onclick = () => {
@@ -872,15 +709,9 @@
     contextModal.style.display = 'none';
   };
 
-  // УДАЛЕНИЕ
   modalDeleteBtn.onclick = () => {
     selectedMsgIds.forEach(id => {
-      send({ 
-        type: 'delMsg', 
-        msgId: parseInt(id), 
-        chatId: currentChatId 
-      });
-      
+      send({ type: 'delMsg', msgId: parseInt(id), chatId: currentChatId });
       const el = document.querySelector(`li[data-msg-id="${id}"]`);
       if (el) el.remove();
     });
