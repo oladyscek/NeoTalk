@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
@@ -33,6 +34,8 @@ func addUserConn(c *Client) {
 	mu.Unlock()
 
 	if old != nil && old != c {
+		msg := websocket.FormatCloseMessage(4000, "kicked")
+		old.Conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(time.Second))
 		old.Conn.Close()
 		log.Println("kicked old session for:", c.Name)
 	}

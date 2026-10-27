@@ -298,7 +298,7 @@
     </div>
   </div>
 
-  <script>
+   <script>
   // ================== STATE ==================
   let myName = '';
   let currentChatId = null;
@@ -325,6 +325,11 @@
   const connectionStatus = document.getElementById('connection-status');
 
   function connectWebSocket() {
+    // Защита: если сокет уже открыт или в процессе открытия, не создаем новый
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return; 
+    }
+
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}/ws`);
 
@@ -335,11 +340,20 @@
       if (savedToken) send({ type: 'auth', token: savedToken });
     };
 
-    ws.onclose = () => {
-      console.log('ws closed, connection lost');
+    ws.onclose = (e) => {
+      console.log('ws closed, code:', e.code);
+      
+      // Если это код 4000 (нас выкинул сервер при входе с другого устройства)
+      if (e.code === 4000) {
+          alert("You have been disconnected because this account was opened in another window/device.");
+          localStorage.removeItem('token');
+          location.reload(); // Перезагружаем страницу на экран логина
+          return;
+      }
+
       connectionStatus.style.display = 'block';
       
-      // Move hanging messages to outbox
+      // ПЕРЕХВАТ: Переносим все "висящие" сообщения из UI в очередь
       const pendingEls = messagesList.querySelectorAll('.own.pending:not([data-msg-id])');
       pendingEls.forEach(el => {
         const cid = parseInt(el.dataset.chatId);
@@ -367,10 +381,16 @@
       switch (p.type) {
         case 'authStatus':
           if (p.answer === 'ok') {
+              const wasLoggedIn = myName !== '';
               myName = p.name;
               document.documentElement.classList.remove('auth-pending');
               send({ type: 'getChats' });
-              showChats();
+              
+              // Выкидываем в список чатов ТОЛЬКО если это первый вход (а не реконнект)
+              if (!wasLoggedIn) {
+                  showChats(); 
+              }
+              
               flushOutbox();
           } else {
               localStorage.removeItem('token');
