@@ -108,6 +108,12 @@
     .msg-text { word-wrap: break-word; }
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; }
 
+    /* Убираем крестик очистки у input[type="search"] */
+    input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    display: none;
+    }
+
     /* Date Divider */
     .messages li.date-divider {
       width: max-content;
@@ -334,7 +340,7 @@
         <ul class="messages"></ul>
         <form class="send">
           <input 
-            type="text" 
+            type="search"
             name="message" 
             placeholder="message..." 
             maxlength="1000"
@@ -1067,25 +1073,26 @@
     navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
   }
 
-    // ================== ФИКС КЛАВИАТУРЫ НА МОБИЛКЕ ==================
+    // ================== ФИКС КЛАВИАТУРЫ НА МОБИЛЬКЕ ==================
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-      // Подстраиваем высоту приложения под экран с учетом клавиатуры
+    const handleKeyboard = () => {
       const app = document.querySelector('.app');
-      if (app) {
-        app.style.height = `${window.visualViewport.height}px`;
-      }
-    });
-  }
+      if (!app) return;
 
-  // Жестко пресекаем попытки Chrome прокрутить экран при фокусе на инпут
-  const msgInput = document.querySelector('.send input');
-  if (msgInput) {
-    msgInput.addEventListener('focus', () => {
-      setTimeout(() => {
-        window.scrollTo(0, 0); // Возвращаем экран в исходное положение
-      }, 50);
-    });
+      // Устанавливаем высоту приложения равной РЕАЛЬНОЙ видимой высоте
+      app.style.height = `${window.visualViewport.height}px`;
+
+      // Компенсируем смещение, если браузер попытался прокрутить visualViewport
+      if (window.visualViewport.offsetTop > 0) {
+        document.body.style.transform = `translateY(-${window.visualViewport.offsetTop}px)`;
+      } else {
+        document.body.style.transform = 'none';
+      }
+    };
+
+    // Слушаем и resize (открытие/закрытие), и scroll (попытка прокрутки)
+    window.visualViewport.addEventListener('resize', handleKeyboard);
+    window.visualViewport.addEventListener('scroll', handleKeyboard);
   }
 
   </script>
