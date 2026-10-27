@@ -151,12 +151,46 @@
       .app { position: relative; overflow: hidden; }
       .sidebar { width: 100%; border-right: none; }
 
-      .chat { position: absolute; top: 0; left: 100%; width: 100%; height: 100%; background: #0D0221; transition: left 0.3s ease-in-out; z-index: 10; }
+      .chat { 
+        position: absolute; 
+        top: 0; 
+        left: 100%; 
+        width: 100%; 
+        height: 100%; 
+        
+        background: #0D0221;
+        background-image:
+          radial-gradient(2px 2px at 20% 30%, #8a2be2, transparent),
+          radial-gradient(1px 1px at 60% 70%, #E0D0FF, transparent),
+          radial-gradient(1px 1px at 80% 20%, #8a2be2, transparent),
+          radial-gradient(2px 2px at 40% 90%, #E0D0FF, transparent);
+        background-size: 200px 200px;
+        animation: stars 20s linear infinite;
+
+        transition: left 0.3s ease-in-out; 
+        z-index: 10; 
+      }
+      
       body.show-mobile-chat .chat { left: 0; }
       #mobile-back-btn { display: block !important; }
       
-      .chat-header { display: flex; align-items: center; gap: 15px; }
+      .chat-header { 
+        display: flex; 
+        align-items: center; 
+        gap: 15px; 
+        padding: 10px 15px;
+        background: rgba(26, 11, 46, 0.9);
+      }
+
       .messages li { max-width: 85%; }
+      
+      .messages .own {
+        align-self: flex-end;  
+        margin-left: 0;        
+        margin-right: 0; 
+        border-color: #8a2be2; 
+        box-shadow: 0 0 8px #8a2be2;
+      }
 
       /* На мобилке дату центрируем */
       .messages li.date-divider {
@@ -164,9 +198,6 @@
         margin: 15px auto;
       }
 
-      .chat-header {
-        padding: 10px 15px;
-      }
       #mobile-back-btn {
         font-size: 16px !important;
         padding: 5px 12px !important;
@@ -177,6 +208,7 @@
       .send {
         padding: 10px;
         gap: 8px;
+        background: rgba(13, 2, 33, 0.9);
       }
       .send input {
         height: 40px;
@@ -679,9 +711,7 @@
 
   // ================== NAVIGATION ==================
   mobileBackBtn.onclick = () => {
-    document.body.classList.remove('show-mobile-chat');
-    document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
-    clearSelection(); 
+    closeActiveChat();
   };
 
   // ================== RENDERING ==================
@@ -710,6 +740,33 @@
   chatList.onclick = (e) => {
     if (e.target.tagName === 'LI') selectChat(e.target);
   };
+
+  function closeActiveChat() {
+    // Если открыто модальное окно (удаление/пересылка) — закрываем сначала его
+    if (contextModal.style.display === 'flex') {
+      contextModal.style.display = 'none';
+      return;
+    }
+
+    // Если и так ничего не открыто — выходим
+    if (!currentChatId) return;
+
+    // Сбрасываем стейт
+    currentChatId = null;
+    oldestMessageId = null;
+    hasMoreHistory = true;
+    isLoadingHistory = false;
+    lastAppendedDate = null;
+
+    // Очищаем UI
+    document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
+    chatTitle.textContent = '';
+    messagesList.innerHTML = '';
+    clearSelection();
+
+    // На мобилке выезжаем обратно в список чатов
+    document.body.classList.remove('show-mobile-chat');
+  }
 
   function selectChat(li) {
     document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
@@ -967,6 +1024,12 @@
     clearSelection();
     contextModal.style.display = 'none';
   };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeActiveChat();
+    }
+  });
 
   </script>
 </body>
