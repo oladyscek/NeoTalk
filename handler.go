@@ -2,60 +2,61 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
-	"encoding/json"
 	"sync"
 
 	"github.com/gorilla/websocket"
 	_ "modernc.org/sqlite"
 )
 
-
 var db *sql.DB
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-    origin := r.Header.Get("Origin")
-    return origin == "" || strings.Contains(origin, r.Host)
+		origin := r.Header.Get("Origin")
+		return origin == "" || strings.Contains(origin, r.Host)
 	},
 }
 
 var (
-    mu      sync.Mutex
-    clients = make(map[string]*Client) // name -> client
+	mu      sync.Mutex
+	clients = make(map[string]*Client) // name -> client
 )
 
 func addUserConn(c *Client) {
-    mu.Lock()
-    old := clients[c.Name]
-    clients[c.Name] = c
-    mu.Unlock()
+	mu.Lock()
+	old := clients[c.Name]
+	clients[c.Name] = c
+	mu.Unlock()
 
-    if old != nil && old != c {
-        old.Conn.Close()
-        log.Println("kicked old session for:", c.Name)
-    }
+	if old != nil && old != c {
+		old.Conn.Close()
+		log.Println("kicked old session for:", c.Name)
+	}
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Println("upgrade error", err)
-        return
-    }
+	if err != nil {
+		log.Println("upgrade error", err)
+		return
+	}
 
-    cl := &Client{Conn: conn} 
+	conn.SetReadLimit(64 * 1024)
 
-    defer func() {
-        conn.Close()
-        mu.Lock()
-        if cl.Name != "" && clients[cl.Name] == cl {
-            delete(clients, cl.Name)
-        }
-        mu.Unlock()
-    }()
+	cl := &Client{Conn: conn}
+
+	defer func() {
+		conn.Close()
+		mu.Lock()
+		if cl.Name != "" && clients[cl.Name] == cl {
+			delete(clients, cl.Name)
+		}
+		mu.Unlock()
+	}()
 
 	log.Println("new connection", conn.RemoteAddr())
 

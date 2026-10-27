@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -36,12 +37,16 @@ type Packet struct {
 	Token    string          `json:"token,omitempty"`
 	BeforeID int             `json:"beforeId,omitempty"`
 	HasMore  bool            `json:"hasMore,omitempty"`
+	Time     string			 `json:"time,omitempty"`
 }
 
 type Client struct {
 	Conn    *websocket.Conn
 	Name    string
 	WriteMu sync.Mutex
+
+	MsgCount    int
+	LastMsgTime time.Time
 }
 
 func (c *Client) send(p Packet) {

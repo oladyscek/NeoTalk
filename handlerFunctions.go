@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -52,6 +53,22 @@ func loginWS(c *Client, req *Packet) {
 }
 
 func sendMsgWS(c *Client, req *Packet) {
+	if len(req.Text) == 0 || len(req.Text) > 1000 {
+		c.send(Packet{Type: "msgStatus", Answer: "invalidMsgLength"})
+		return
+	}
+
+	now := time.Now()
+	if now.Sub(c.LastMsgTime) > time.Second {
+		c.MsgCount = 0
+		c.LastMsgTime = now
+	}
+	c.MsgCount++
+	if c.MsgCount > 5 {
+		c.send(Packet{Type: "msgStatus", Answer: "slow_down"})
+		return
+	}
+
 	mu.Lock()
 	recipient, _ := clients[req.To]
 	mu.Unlock()
@@ -68,7 +85,7 @@ func sendMsgWS(c *Client, req *Packet) {
 
 	if !req.IsGroup {
 
-		_, id, ok := sendMsg(req, c.Name) //send to db, could be found in dbFunctions
+		chatID, id, ok := sendMsg(req, c.Name) //send to db, could be found in dbFunctions
 
 		if !ok {
 			c.send(Packet{Type: "msgStatus", Answer: "failed"})
@@ -78,7 +95,7 @@ func sendMsgWS(c *Client, req *Packet) {
 		if recipient != nil {
 			recipient.send(Packet{Type: "incomedMsg", From: c.Name, To: req.To, MsgId: int(id), Text: req.Text})
 		}
-		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id)})
+		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id), ChatID: int(chatID)})
 	} else {
 		chatID, id, ok := sendMsg(req, c.Name)
 
@@ -121,12 +138,12 @@ func sendMsgWS(c *Client, req *Packet) {
 			m.send(Packet{
 				Type:   "incomedMsg",
 				From:   c.Name,
-				MsgId: int(id),
+				MsgId:  int(id),
 				ChatID: int(chatID),
 				Text:   req.Text,
 			})
 		}
-		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id)})
+		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id), ChatID: int(chatID)})
 	}
 }
 
