@@ -1,0 +1,18 @@
+{
+  "name": "NeoTalk",
+  "short_name": "NeoTalk",
+  "description": "A retro messenger",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0221",
+  "theme_color": "#0D0221",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "1600x1600",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
