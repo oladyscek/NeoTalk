@@ -343,11 +343,10 @@
     ws.onclose = (e) => {
       console.log('ws closed, code:', e.code);
       
-      // Если это код 4000 (нас выкинул сервер при входе с другого устройства)
+      // Если это код 4000 (нас выкинул сервер при входе с другого устройства/вкладки)
       if (e.code === 4000) {
-          alert("You have been disconnected because this account was opened in another window/device.");
-          localStorage.removeItem('token');
-          location.reload(); // Перезагружаем страницу на экран логина
+          alert("Disconnected: Account opened in another tab/device. Click OK to refresh.");
+          location.reload(); // Перезагружаем страницу, токен остался в localStorage
           return;
       }
 
