@@ -147,9 +147,9 @@
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
     .chat-list, .messages { scrollbar-width: none; }
 
-    /* ================== MOBILE ADAPTATION ================== */
-        @media (max-width: 768px) {
-      /* 1. Намертво фиксируем окно браузера, чтобы он не мог его прокрутить */
+       /* ================== MOBILE ADAPTATION ================== */
+    @media (max-width: 768px) {
+      /* 1. НАМЕРТВО ФИКСИРУЕМ ОКНО БРАУЗЕРА */
       html, body {
         height: 100%;
         width: 100%;
@@ -157,13 +157,22 @@
         padding: 0;
         overflow: hidden !important;
         position: fixed; 
+        overscroll-behavior: none; /* Запрещаем нативную прокрутку страницы */
       }
 
-      /* 2. Приложение занимает ровно 100% экрана */
+      /* Убираем крестик очистки у input type="search", чтобы он не ломал дизайн */
+      input[type="search"]::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+        display: none;
+      }
+
+      /* 2. ПРИЛОЖЕНИЕ ЗАНИМАЕТ РОВНО ВИДИМУЮ ОБЛАСТЬ */
       .app {
         position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        height: 100%;
+        top: 0; 
+        left: 0; 
+        right: 0; 
+        bottom: 0; 
         overflow: hidden;
       }
 
@@ -174,7 +183,7 @@
         overflow-y: auto; 
       }
 
-      /* 3. Чат - это жесткая колонка на весь экран */
+      /* 3. ЧАТ КАК ЖЕСТКАЯ КОЛОНКА */
       .chat { 
         position: absolute; 
         top: 0; 
@@ -182,6 +191,7 @@
         width: 100%; 
         height: 100%; 
         
+        /* Звездный фон */
         background: #0D0221;
         background-image:
           radial-gradient(2px 2px at 20% 30%, #8a2be2, transparent),
@@ -196,33 +206,48 @@
         
         display: flex;
         flex-direction: column; 
-        overflow: hidden; /* Чат не скроллится, скроллятся только сообщения */
+        overflow: hidden; 
       }
       
       body.show-mobile-chat .chat { left: 0; }
       #mobile-back-btn { display: block !important; }
-      
-      /* 4. Шапка всегда сверху */
+
+      /* 4. ШАПКА НЕ СЖИМАЕТСЯ */
       .chat-header { 
         display: flex; 
         align-items: center; 
         gap: 15px; 
         padding: 10px 15px;
         background: rgba(26, 11, 46, 0.9);
-        flex-shrink: 0; /* Запрещаем сжиматься */
+        flex-shrink: 0; 
       }
 
-      /* 5. Скроллятся только сообщения */
+      /* 5. СООБЩЕНИЯ СКРОЛЛЯТСЯ И НЕ ДЕРГАЮТ РОДИТЕЛЯ */
       .messages { 
         flex: 1; 
         min-height: 0; 
         overflow-y: auto;
+        overscroll-behavior-y: contain; /* Отключает скролл body при достижении края */
       }
 
       .messages li { max-width: 85%; }
-      .messages .own { align-self: flex-end; margin-left: 0; margin-right: 0; border-color: #8a2be2; box-shadow: 0 0 8px #8a2be2; }
-      .messages li.date-divider { align-self: center; margin: 15px auto; }
+      
+      /* Свои сообщения вправо */
+      .messages .own {
+        align-self: flex-end;  
+        margin-left: 0;        
+        margin-right: 0; 
+        border-color: #8a2be2; 
+        box-shadow: 0 0 8px #8a2be2;
+      }
 
+      /* Дата по центру */
+      .messages li.date-divider {
+        align-self: center;
+        margin: 15px auto;
+      }
+
+      /* Уменьшенная кнопка "Назад" */
       #mobile-back-btn {
         font-size: 16px !important;
         padding: 5px 12px !important;
@@ -230,14 +255,17 @@
         box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5);
       }
 
-      /* 6. Инпут всегда снизу */
+      /* 6. ИНПУТ НЕ СЖИМАЕТСЯ И ВСЕГДА ВНИЗУ */
       .send {
         padding: 10px;
         gap: 8px;
         background: rgba(13, 2, 33, 0.9);
-        flex-shrink: 0; /* Запрещаем сжиматься */
+        flex-shrink: 0; 
       }
-      .send input { height: 40px; font-size: 14px; }
+      .send input {
+        height: 40px;
+        font-size: 14px;
+      }
       .send button {
         font-size: 20px !important;
         padding: 5px 15px !important;
@@ -1073,26 +1101,31 @@
     navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
   }
 
-    // ================== ФИКС КЛАВИАТУРЫ НА МОБИЛЬКЕ ==================
+    // ================== ФИКС КЛАВИАТУРЫ НА МОБИЛКЕ ==================
   if (window.visualViewport) {
-    const handleKeyboard = () => {
+    const fixKeyboardScroll = () => {
       const app = document.querySelector('.app');
       if (!app) return;
 
-      // Устанавливаем высоту приложения равной РЕАЛЬНОЙ видимой высоте
+      // Подстраиваем высоту под видимую область
       app.style.height = `${window.visualViewport.height}px`;
 
-      // Компенсируем смещение, если браузер попытался прокрутить visualViewport
+      // Если Chrome попытался сдвинуть экран вниз (в пустоту) — жестко возвращаем наверх
       if (window.visualViewport.offsetTop > 0) {
-        document.body.style.transform = `translateY(-${window.visualViewport.offsetTop}px)`;
-      } else {
-        document.body.style.transform = 'none';
+        window.scrollTo(0, 0);
       }
     };
 
-    // Слушаем и resize (открытие/закрытие), и scroll (попытка прокрутки)
-    window.visualViewport.addEventListener('resize', handleKeyboard);
-    window.visualViewport.addEventListener('scroll', handleKeyboard);
+    window.visualViewport.addEventListener('resize', fixKeyboardScroll);
+    window.visualViewport.addEventListener('scroll', fixKeyboardScroll);
+  }
+
+  // При фокусе на инпут возвращаем скролл на место (чтобы не было прыжков)
+  const msgInput = document.querySelector('.send input');
+  if (msgInput) {
+    msgInput.addEventListener('focus', () => {
+      setTimeout(() => window.scrollTo(0, 0), 100);
+    });
   }
 
   </script>
