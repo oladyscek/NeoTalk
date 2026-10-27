@@ -88,11 +88,7 @@
 
     .messages { flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     
-    /* Псевдоэлемент для прижатия сообщений к низу, когда их мало */
-    .messages::before {
-      content: '';
-      margin-top: auto;
-    }
+    .messages::before { content: ''; margin-top: auto; }
 
     /* MESSAGE BUBBLE STYLES */
     .messages li { 
@@ -112,11 +108,11 @@
     .msg-text { word-wrap: break-word; }
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; }
 
-    /* Date Divider (Left aligned for PC by default) */
+    /* Date Divider */
     .messages li.date-divider {
       width: max-content;
-      align-self: flex-start; /* Прижимаем к левому краю для ПК */
-      margin: 15px 0 15px 20px; /* Сдвигаем чуть правее */
+      align-self: flex-start;
+      margin: 15px 0 15px 20px; 
       background: rgba(13, 2, 33, 0.8);
       border: 1px solid #2e0777;
       color: #8a2be2; 
@@ -166,6 +162,33 @@
       .messages li.date-divider {
         align-self: center;
         margin: 15px auto;
+      }
+
+      .chat-header {
+        padding: 10px 15px;
+      }
+      #mobile-back-btn {
+        font-size: 16px !important;
+        padding: 5px 12px !important;
+        margin: 0 !important;
+        box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5);
+      }
+
+      .send {
+        padding: 10px;
+        gap: 8px;
+      }
+      .send input {
+        height: 40px;
+        font-size: 14px;
+      }
+      .send button {
+        font-size: 20px !important;
+        padding: 5px 15px !important;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     }
   </style>
