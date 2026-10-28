@@ -6,91 +6,183 @@
   <title>NeoTalk</title>
 
   <script>
+    // Prevent FOUC (Flash of Unauthenticated Content) for returning users
     if (localStorage.getItem('token')) {
       document.documentElement.classList.add('auth-pending');
     }
   </script>
 
   <style>
-    /* ================== GLOBAL STYLES ================== */
-    .auth-pending #login-screen,
-    .auth-pending #reg-screen { display: none !important; }
-
-    #coming-soon, #new-chat-screen, #new-group-screen, 
-    #new-choice-screen, #chats, #reg-screen, #settings-screen { display: none; }
+    /* ================== GLOBAL & RESETS ================== */
+    * { box-sizing: border-box; }
 
     body {
       animation: stars 20s linear infinite;
       font-family: 'Press Start 2P', monospace;
-      background: #0D0221; margin: 0;
+      background-color: #0D0221; 
+      margin: 0;
       background-image:
         radial-gradient(2px 2px at 20% 30%, #8a2be2, transparent),
         radial-gradient(1px 1px at 60% 70%, #E0D0FF, transparent),
         radial-gradient(1px 1px at 80% 20%, #8a2be2, transparent),
         radial-gradient(2px 2px at 40% 90%, #E0D0FF, transparent);
       background-size: 200px 200px;
+      overflow: hidden;
     }
 
-    @keyframes stars { from { background-position: 0 0; } to { background-position: 200px 0; } }
+    /* Hide screens during auth check or when not active */
+    .auth-pending #login-screen,
+    .auth-pending #reg-screen { display: none !important; }
+
+    #coming-soon, #new-chat-screen, #new-group-screen, #new-choice-screen,
+    #chats, #reg-screen, #settings-screen { display: none; }
+
+    /* ================== ANIMATIONS ================== */
+    @keyframes stars { 
+      from { background-position: 0 0; } 
+      to { background-position: 200px 0; } 
+    }
+
     @keyframes flicker {
-      0%,18%,22%,25%,53%,57%,100% { text-shadow: 0 0 10px #8a2be2, 0 0 20px #8a2be2; }
-      20%,24%,55% { text-shadow: none; }
+      0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 0 0 10px #8a2be2, 0 0 20px #8a2be2; }
+      20%, 24%, 55% { text-shadow: none; }
     }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-    /* ================== CONNECTION STATUS ================== */
+    @keyframes pulse { 
+      0% { opacity: 1; } 
+      50% { opacity: 0.6; } 
+      100% { opacity: 1; } 
+    }
+
+    /* ================== GLOBAL COMPONENTS ================== */
     #connection-status {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; 
-      background: #a30000; color: #fff; text-align: center; padding: 10px; font-size: 10px;
-      z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.8); animation: pulse 1.5s infinite;
+      display: none; 
+      position: fixed; top: 0; left: 0; width: 100%; 
+      background: #a30000; color: #fff; 
+      text-align: center; padding: 10px; font-size: 10px;
+      z-index: 9999; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.8); 
+      animation: pulse 1.5s infinite;
     }
 
-    /* ================== GLOBAL BUTTON STYLE ================== */
-    .screen button, .modal-content .action-btn, .modal-close, #msg-actions-btn, .sidebar-header button, .chat button, #mobile-back-btn {
+    /* Unified retro button styling */
+    button {
       font-family: 'Press Start 2P', monospace;
-      background-color: #1A0B2E; color: #E0D0FF; border: 2px solid #2e0777;
+      background-color: #1A0B2E; 
+      color: #E0D0FF; 
+      border: 2px solid #2e0777;
       box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5);
-      transition: 0.1s; cursor: pointer; outline: none;
+      transition: 0.1s; 
+      cursor: pointer; 
+      outline: none;
     }
-    .screen button:active, .modal-content .action-btn:active, .modal-close:active, #msg-actions-btn:active, .sidebar-header button:active, .chat button:active, #mobile-back-btn:active {
-      transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
+    button:active {
+      transform: translateY(4px); 
+      box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5);
     }
 
-    /* ================== AUTH & MENU SCREENS ================== */
-    .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 95vh; color: #E0D0FF; }
+    /* ================== SCREENS (AUTH, SETTINGS, MENUS) ================== */
+    .screen {
+      display: flex; flex-direction: column; justify-content: center;
+      align-items: center; height: 95vh; color: #E0D0FF;
+    }
     .screen h1 { animation: flicker 3s infinite; font-size: 64px; margin-bottom: 70px; }
     .screen h2 { margin-top: 30px; font-size: 10px; color: #4f328a; }
-    .screen input { caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; margin-bottom: 10px; height: 30px; width: 320px; max-width: 90%; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; }
+    .screen input {
+      caret-color: #8a2be2; font-family: 'Press Start 2P', monospace;
+      margin-bottom: 10px; height: 30px; width: 320px; max-width: 90%;
+      background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777;
+    }
     .screen input:focus { outline: none; border-color: #8a2be2; }
     .screen button { margin-top: 20px; font-size: 24px; padding: 5px 60px; }
 
-    /* ================== GROUP CHIPS ================== */
+    /* Group member tags */
     #group-chips-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px; max-width: 320px; }
-    .group-chip { background-color: #2e0777; color: #E0D0FF; border: 2px solid #8a2be2; padding: 5px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; font-family: 'Press Start 2P', monospace; box-shadow: 0 0 8px #8a2be2; }
-    .group-chip button { background: none; border: none; color: #E0D0FF; cursor: pointer; font-size: 14px; margin: 0; padding: 0; box-shadow: none; font-family: inherit; outline: none; }
-    .group-chip button:hover { color: #00FFFF; background: none; box-shadow: none; }
+    .group-chip {
+      background-color: #2e0777; color: #E0D0FF; border: 2px solid #8a2be2;
+      padding: 5px 10px; font-size: 12px; display: flex; align-items: center;
+      gap: 8px; font-family: 'Press Start 2P', monospace; box-shadow: 0 0 8px #8a2be2;
+    }
+    .group-chip button {
+      background: none; border: none; color: #E0D0FF; cursor: pointer;
+      font-size: 14px; margin: 0; padding: 0; box-shadow: none; font-family: inherit;
+    }
+    .group-chip button:hover { color: #00FFFF; }
 
-    /* ================== CHAT INTERFACE ================== */
+    /* ================== MAIN CHAT INTERFACE ================== */
     #chats { height: 100vh; }
     .app { display: flex; height: 100vh; color: #E0D0FF; }
+
+    /* --- Sidebar & Chat List --- */
     .sidebar { width: 220px; background: #1A0B2E; border-right: 2px solid #2e0777; display: flex; flex-direction: column; }
-    .sidebar-header { padding: 15px; font-size: 12px; border-bottom: 2px solid #2e0777; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
+    .sidebar-header {
+      padding: 15px; font-size: 12px; border-bottom: 2px solid #2e0777;
+      text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2;
+      display: flex; justify-content: space-between; align-items: center;
+    }
     .sidebar-header button { font-size: 14px; padding: 4px 10px; }
     .sidebar-header button:hover { background-color: #2e0777; box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5), 0 0 8px #8a2be2; }
 
     .chat-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-    .chat-list li { padding: 12px 15px; border-bottom: 1px solid #2e0777; cursor: pointer; font-size: 10px; transition: background 0.15s; }
+    
+    .chat-list li { 
+      padding: 12px 15px; border-bottom: 1px solid #2e0777; cursor: pointer; font-size: 10px; 
+      transition: background 0.15s; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
     .chat-list li:hover { background: #2e0777; }
     .chat-list li.active { background: #2e0777; border-left: 3px solid #8a2be2; padding-left: 12px; }
 
-    .chat { flex: 1; display: flex; flex-direction: column; position: relative; }
-    .chat-header { padding: 15px; border-bottom: 2px solid #2e0777; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
+    /* Prevent long names from pushing the badge out of view */
+    .chat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    .messages { flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    /* Unread states */
+    .chat-list li.unread { background: rgba(46, 7, 119, 0.4); }
+    .chat-list li.unread .chat-name { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; }
     
+    /* LITERAL PIXEL ART CIRCLE BADGE */
+    .unread-badge {
+      /* No background color, we use the SVG */
+      background: transparent;
+      
+      /* An 8x8 SVG circle drawn with literal pixels */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1v-1z' fill='%2300FFFF'/%3E%3C/svg%3E");
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      background-position: center;
+      
+      /* MAGIC: Forces the browser to render the SVG without anti-aliasing (no smooth edges) */
+      image-rendering: pixelated;
+      
+      color: #0D0221;
+      min-width: 18px; 
+      height: 18px;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      font-size: 8px; 
+      font-weight: bold; 
+      flex-shrink: 0; 
+      padding: 0 4px;
+      
+      /* drop-shadow traces the pixelated outline, unlike box-shadow which would be a square */
+      filter: drop-shadow(0 0 4px #00FFFF);
+    }
+
+    /* --- Chat Window --- */
+    .chat { flex: 1; display: flex; flex-direction: column; position: relative; }
+    .chat-header { 
+      padding: 15px; border-bottom: 2px solid #2e0777; font-size: 12px; 
+      letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; 
+      display: flex; justify-content: space-between; align-items: center; 
+    }
+
+    .messages { 
+      flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; 
+      display: flex; flex-direction: column; gap: 10px; 
+    }
+    /* Push messages to the bottom if they don't fill the container */
     .messages::before { content: ''; margin-top: auto; }
 
-    /* MESSAGE BUBBLE STYLES */
     .messages li { 
       max-width: 60%; padding: 8px 12px; border: 2px solid #2e0777; 
       background: #1A0B2E; font-size: 10px; line-height: 1.6; 
@@ -98,182 +190,97 @@
       transition: background 0.1s, border-color 0.1s; position: relative;
       display: flex; flex-direction: column;
     }
+    
     .messages .own   { margin-right: auto; border-color: #8a2be2; box-shadow: 0 0 8px #8a2be2; }
     .messages .other { margin-right: auto; }
     .messages li.selected { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
-
-    /* Pending message style */
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
 
     .msg-text { word-wrap: break-word; }
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; }
 
-    /* Убираем крестик очистки у input[type="search"] */
-    input[type="search"]::-webkit-search-cancel-button {
-    -webkit-appearance: none;
-    display: none;
-    }
-
-    /* Date Divider */
+    /* Date dividers inside the chat */
     .messages li.date-divider {
-      width: max-content;
-      align-self: flex-start;
-      margin: 15px 0 15px 20px; 
-      background: rgba(13, 2, 33, 0.8);
-      border: 1px solid #2e0777;
-      color: #8a2be2; 
-      padding: 4px 12px; 
-      font-size: 8px; 
-      text-transform: uppercase;
-      border-radius: 12px;
-      box-shadow: none;
-      display: block;
-      max-width: 100%;
+      width: max-content; align-self: flex-start; margin: 15px 0 15px 20px; 
+      background: rgba(13, 2, 33, 0.8); border: 1px solid #2e0777;
+      color: #8a2be2; padding: 4px 12px; font-size: 8px; text-transform: uppercase;
+      border-radius: 12px; box-shadow: none; display: block; max-width: 100%;
     }
 
+    /* Message Input */
     .send { display: flex; gap: 10px; padding: 15px; border-top: 2px solid #2e0777; }
-    .send input { caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; flex: 1; height: 50px; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; }
+    .send input { 
+      caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; flex: 1; height: 50px; 
+      background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; 
+    }
     .send input:focus { outline: none; border-color: #8a2be2; }
     .chat button { font-size: 30px; padding: 5px 30px; }
 
-    /* ================== SELECTION ACTIONS & MODAL ================== */
+    /* Hide native search clear button (used to bypass Chrome's password manager) */
+    input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+    /* ================== MODALS & OVERLAYS ================== */
     #msg-actions-btn { display: none; font-size: 20px; padding: 5px 15px; }
-    #context-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 2, 33, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
-    .modal-content { background: #1A0B2E; border: 2px solid #8a2be2; box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777; padding: 40px 30px 30px 30px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 20px; width: 350px; max-width: 90%; text-align: center; }
+    #context-modal { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(13, 2, 33, 0.85); z-index: 1000; justify-content: center; align-items: center; 
+      backdrop-filter: blur(3px); 
+    }
+    .modal-content { 
+      background: #1A0B2E; border: 2px solid #8a2be2; box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777; 
+      padding: 40px 30px 30px 30px; position: relative; display: flex; flex-direction: column; 
+      align-items: center; gap: 20px; width: 350px; max-width: 90%; text-align: center; 
+    }
     .modal-content h2 { color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2; }
     .modal-content .action-btn { font-size: 20px; padding: 8px 0; width: 100%; }
     .modal-close { position: absolute; top: 15px; right: 15px; font-size: 20px; padding: 5px 12px; }
 
+    /* Hide scrollbars for a cleaner retro look */
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
     .chat-list, .messages { scrollbar-width: none; }
 
-       /* ================== MOBILE ADAPTATION ================== */
+    /* ================== MOBILE ADAPTATION ================== */
     @media (max-width: 768px) {
-      /* 1. НАМЕРТВО ФИКСИРУЕМ ОКНО БРАУЗЕРА */
-      html, body {
-        height: 100%;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden !important;
-        position: fixed; 
-        overscroll-behavior: none; /* Запрещаем нативную прокрутку страницы */
-      }
+      /* Lock viewport to prevent native scrolling/bouncing */
+      html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden !important; position: fixed; overscroll-behavior: none; }
+      
+      .app { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
+      .sidebar { width: 100%; height: 100%; border-right: none; overflow-y: auto; }
 
-      /* Убираем крестик очистки у input type="search", чтобы он не ломал дизайн */
-      input[type="search"]::-webkit-search-cancel-button {
-        -webkit-appearance: none;
-        display: none;
-      }
-
-      /* 2. ПРИЛОЖЕНИЕ ЗАНИМАЕТ РОВНО ВИДИМУЮ ОБЛАСТЬ */
-      .app {
-        position: absolute;
-        top: 0; 
-        left: 0; 
-        right: 0; 
-        bottom: 0; 
-        overflow: hidden;
-      }
-
-      .sidebar { 
-        width: 100%; 
-        height: 100%; 
-        border-right: none; 
-        overflow-y: auto; 
-      }
-
-      /* 3. ЧАТ КАК ЖЕСТКАЯ КОЛОНКА */
+      /* Chat slides in from the right */
       .chat { 
-        position: absolute; 
-        top: 0; 
-        left: 100%; 
-        width: 100%; 
-        height: 100%; 
-        
-        /* Звездный фон */
+        position: absolute; top: 0; left: 100%; width: 100%; height: 100%; 
         background: #0D0221;
         background-image:
           radial-gradient(2px 2px at 20% 30%, #8a2be2, transparent),
           radial-gradient(1px 1px at 60% 70%, #E0D0FF, transparent),
           radial-gradient(1px 1px at 80% 20%, #8a2be2, transparent),
           radial-gradient(2px 2px at 40% 90%, #E0D0FF, transparent);
-        background-size: 200px 200px;
-        animation: stars 20s linear infinite;
-
-        transition: left 0.3s ease-in-out; 
-        z-index: 10; 
-        
-        display: flex;
-        flex-direction: column; 
-        overflow: hidden; 
+        background-size: 200px 200px; animation: stars 20s linear infinite;
+        transition: left 0.3s ease-in-out; z-index: 10; 
+        display: flex; flex-direction: column; overflow: hidden; 
       }
       
       body.show-mobile-chat .chat { left: 0; }
-      #mobile-back-btn { display: block !important; }
-
-      /* 4. ШАПКА НЕ СЖИМАЕТСЯ */
-      .chat-header { 
-        display: flex; 
-        align-items: center; 
-        gap: 15px; 
-        padding: 10px 15px;
-        background: rgba(26, 11, 46, 0.9);
-        flex-shrink: 0; 
+      
+      #mobile-back-btn { 
+        display: block !important; 
+        font-size: 16px !important; padding: 5px 12px !important; margin: 0 !important; 
+        box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5); 
       }
-
-      /* 5. СООБЩЕНИЯ СКРОЛЛЯТСЯ И НЕ ДЕРГАЮТ РОДИТЕЛЯ */
-      .messages { 
-        flex: 1; 
-        min-height: 0; 
-        overflow-y: auto;
-        overscroll-behavior-y: contain; /* Отключает скролл body при достижении края */
-      }
-
+      
+      .chat-header { display: flex; align-items: center; gap: 15px; padding: 10px 15px; background: rgba(26, 11, 46, 0.9); flex-shrink: 0; }
+      .messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
       .messages li { max-width: 85%; }
       
-      /* Свои сообщения вправо */
-      .messages .own {
-        align-self: flex-end;  
-        margin-left: 0;        
-        margin-right: 0; 
-        border-color: #8a2be2; 
-        box-shadow: 0 0 8px #8a2be2;
-      }
+      /* Align own messages to the right */
+      .messages .own { align-self: flex-end; margin-left: 0; margin-right: 0; border-color: #8a2be2; box-shadow: 0 0 8px #8a2be2; }
+      .messages li.date-divider { align-self: center; margin: 15px auto; }
 
-      /* Дата по центру */
-      .messages li.date-divider {
-        align-self: center;
-        margin: 15px auto;
-      }
-
-      /* Уменьшенная кнопка "Назад" */
-      #mobile-back-btn {
-        font-size: 16px !important;
-        padding: 5px 12px !important;
-        margin: 0 !important;
-        box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5);
-      }
-
-      /* 6. ИНПУТ НЕ СЖИМАЕТСЯ И ВСЕГДА ВНИЗУ */
-      .send {
-        padding: 10px;
-        gap: 8px;
-        background: rgba(13, 2, 33, 0.9);
-        flex-shrink: 0; 
-      }
-      .send input {
-        height: 40px;
-        font-size: 14px;
-      }
-      .send button {
-        font-size: 20px !important;
-        padding: 5px 15px !important;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+      /* Shrink input area for mobile screens */
+      .send { padding: 10px; gap: 8px; background: rgba(13, 2, 33, 0.9); flex-shrink: 0; }
+      .send input { height: 40px; font-size: 14px; }
+      .send button { font-size: 20px !important; padding: 5px 15px !important; height: 40px; display: flex; align-items: center; justify-content: center; }
     }
   </style>
   
@@ -285,17 +292,15 @@
 
 <body>
 
-  <!-- Connection lost status bar -->
   <div id="connection-status">CONNECTION LOST. WAITING FOR NETWORK...</div>
 
-  <!-- HTML SCREENS -->
+  <!-- ================== HTML SCREENS ================== -->
   <div class="screen" id="login-screen">
     <h1>NeoTalk</h1>
     <input id="login-name" placeholder="Name">
     <input id="login-pass" type="password" placeholder="Password">
     <button id="login-btn">log in</button>
     <button id="to-register">register</button>
-    <h2>forgot password? xd lol</h2>
   </div>
 
   <div class="screen" id="reg-screen">
@@ -343,7 +348,7 @@
     <button id="soonBackBtn">back</button>
   </div>
 
-  <!-- Main Chat Interface -->
+  <!-- ================== MAIN CHAT INTERFACE ================== -->
   <div id="chats">
     <div class="app">
       <aside class="sidebar">
@@ -386,7 +391,7 @@
     </div>
   </div>
 
-  <!-- Modals -->
+  <!-- ================== MODALS ================== -->
   <div id="context-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-modal-btn">×</button>
@@ -396,12 +401,13 @@
     </div>
   </div>
 
-   <script>
-  // ================== STATE ==================
+  <script>
+  // ================== APPLICATION STATE ==================
   let myName = '';
   let currentChatId = null;
   let lastAppendedDate = null;
   const chatsById = {};
+  const unreadCounts = {}; // Tracks unread messages per chatId
   let groupMembers = [];
   
   // Selection State
@@ -414,19 +420,17 @@
   let hasMoreHistory = true;
   let isLoadingHistory = false;
 
-  // Outbox State
+  // Outbox Queue (for offline mode)
   let outbox = [];
 
-  // ================== WEBSOCKET SETUP (RECONNECT + OUTBOX) ==================
+  // ================== WEBSOCKET SETUP ==================
   let ws;
   let reconnectTimeout = null;
   const connectionStatus = document.getElementById('connection-status');
 
   function connectWebSocket() {
-    // Защита: если сокет уже открыт или в процессе открытия, не создаем новый
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-        return; 
-    }
+    // Prevent opening multiple connections simultaneously
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return; 
 
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}/ws`);
@@ -441,26 +445,23 @@
     ws.onclose = (e) => {
       console.log('ws closed, code:', e.code);
       
-      // Если это код 4000 (нас выкинул сервер при входе с другого устройства/вкладки)
+      // Custom code 4000 means the server kicked us (e.g., session opened elsewhere)
       if (e.code === 4000) {
           alert("Disconnected: Account opened in another tab/device. Click OK to refresh.");
-          location.reload(); // Перезагружаем страницу, токен остался в localStorage
+          location.reload(); 
           return;
       }
 
       connectionStatus.style.display = 'block';
       
-      // ПЕРЕХВАТ: Переносим все "висящие" сообщения из UI в очередь
+      // Move pending UI messages back to the outbox for a retry
       const pendingEls = messagesList.querySelectorAll('.own.pending:not([data-msg-id])');
       pendingEls.forEach(el => {
         const cid = parseInt(el.dataset.chatId);
         const text = el.dataset.originalText;
         const timeStr = el.dataset.time;
         const chat = chatsById[cid];
-        
-        if (chat) {
-            outbox.push({ chatId: cid, isGroup: chat.isGroup, to: chat.chatName, text: text, timeStr: timeStr });
-        }
+        if (chat) outbox.push({ chatId: cid, isGroup: chat.isGroup, to: chat.chatName, text: text, timeStr: timeStr });
         el.remove(); 
       });
 
@@ -483,11 +484,8 @@
               document.documentElement.classList.remove('auth-pending');
               send({ type: 'getChats' });
               
-              // Выкидываем в список чатов ТОЛЬКО если это первый вход (а не реконнект)
-              if (!wasLoggedIn) {
-                  showChats(); 
-              }
-              
+              // Only redirect to chat list on initial login, not on silent reconnects
+              if (!wasLoggedIn) showChats(); 
               flushOutbox();
           } else {
               localStorage.removeItem('token');
@@ -529,7 +527,10 @@
           handleIncomingMsg(p);
           break;
         case 'newChatStatus':
-          if (p.answer === 'ok') { showChats(); send({ type: 'getChats' }); } 
+          if (p.answer === 'ok') { 
+            showChats(); 
+            send({ type: 'getChats' }); 
+          } 
           else alert('create error: ' + p.answer);
           break;
         case 'newChat':
@@ -537,6 +538,7 @@
           break;
         case 'msgStatus':
           if (p.answer === 'ok' && p.msgId) {
+            // Attach the real message ID to the latest pending UI element
             const myMsgs = messagesList.querySelectorAll('.own.pending:not([data-msg-id])');
             if (myMsgs.length > 0) {
               const lastMsg = myMsgs[myMsgs.length - 1];
@@ -564,7 +566,9 @@
 
   connectWebSocket();
 
+  // ================== WEBSOCKET HELPERS ==================
   document.addEventListener('visibilitychange', () => {
+    // Force reconnect if the tab wakes up and the socket is dead
     if (document.visibilityState === 'visible') {
       if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
         clearTimeout(reconnectTimeout);
@@ -588,7 +592,6 @@
     if (outbox.length === 0) return;
     const msgsToSend = [...outbox];
     outbox = []; 
-
     msgsToSend.forEach(msg => {
         executeSend(msg);
         if (msg.chatId === currentChatId) {
@@ -598,26 +601,17 @@
     });
   }
 
-  // ================== UTILS (TIME & DATE) ==================
+  // ================== UTILITIES (TIME & DATE) ==================
   function parseDate(timeStr) {
     if (!timeStr) return new Date();
+    // Handle both ISO strings and standard SQLite timestamps
     if (timeStr.includes('T')) return new Date(timeStr);
     return new Date(timeStr.replace(' ', 'T') + 'Z');
   }
-
-  function formatMsgTime(timeStr) {
-    const date = parseDate(timeStr);
-    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  function formatDateDivider(timeStr) {
-    const date = parseDate(timeStr);
-    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'long' });
-  }
-
-  function getDateStr(timeStr) {
-    return parseDate(timeStr).toISOString().split('T')[0];
-  }
+  
+  function formatMsgTime(timeStr) { return parseDate(timeStr).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+  function formatDateDivider(timeStr) { return parseDate(timeStr).toLocaleDateString('en-US', { day: 'numeric', month: 'long' }); }
+  function getDateStr(timeStr) { return parseDate(timeStr).toISOString().split('T')[0]; }
 
   // ================== DOM ELEMENTS ==================
   const loginScreen    = document.getElementById('login-screen');
@@ -661,7 +655,7 @@
   const choiceDmBtn     = document.getElementById('choice-dm-btn');
   const choiceGroupBtn  = document.getElementById('choice-group-btn');
   const choiceBackBtn   = document.getElementById('choice-back-btn');
-  
+
   const newGroupName        = document.getElementById('new-group-name');
   const newGroupMemberInput = document.getElementById('new-group-member-input');
   const groupChipsContainer = document.getElementById('group-chips-container');
@@ -674,15 +668,7 @@
   const modalDeleteBtn = document.getElementById('modal-delete-btn');
   const modalForwardBtn = document.getElementById('modal-forward-btn');
 
-  // ================== INFINITE SCROLL ==================
-  messagesList.onscroll = () => {
-    if (messagesList.scrollTop === 0 && hasMoreHistory && !isLoadingHistory && currentChatId && oldestMessageId) {
-      isLoadingHistory = true;
-      send({ type: 'getHistory', chatId: currentChatId, beforeId: oldestMessageId });
-    }
-  };
-
-  // ================== SCREEN MANAGEMENT ==================
+  // ================== SCREEN NAVIGATION ==================
   function hideAllScreens() {
     [loginScreen, regScreen, chatsScreen, settingsScreen, soonScreen, newChoiceScreen, newChatScreen, newGroupScreen].forEach(el => el.style.display = 'none');
   }
@@ -693,8 +679,8 @@
   function showSettings() { hideAllScreens(); settingsScreen.style.display = 'flex'; }
   function showComingSoon() { hideAllScreens(); soonScreen.style.display = 'flex'; }
   function showNewChoice() { hideAllScreens(); newChoiceScreen.style.display = 'flex'; }
-  function showNewChat() { hideAllScreens(); newChatScreen.style.display = 'flex'; }
-  function showNewGroup() { hideAllScreens(); newGroupScreen.style.display = 'flex'; }
+  function showNewChat() { hideAllScreens(); newChatScreen.style.display = 'flex'; newChatInput.focus(); }
+  function showNewGroup() { hideAllScreens(); newGroupScreen.style.display = 'flex'; newGroupName.focus(); }
 
   toRegBtn.onclick = showReg;
   toLoginBtn.onclick = showLogin;
@@ -704,7 +690,7 @@
   cancelChatBtn.onclick = showChats;
   cancelGroupBtn.onclick = showChats;
 
-  // ================== AUTH & SETTINGS ==================
+  // ================== AUTHENTICATION ACTIONS ==================
   loginBtn.onclick = () => {
     const name = loginNameInput.value.trim();
     if (!name) return alert('Enter name');
@@ -728,12 +714,13 @@
   settingsLangBtn.onclick = showComingSoon;
   settingsLogoutBtn.onclick = () => { localStorage.removeItem('token'); location.reload(); };
 
-  // ================== CREATE CHAT / GROUP ==================
+  // ================== CHAT CREATION LOGIC ==================
   newChatBtn.onclick = showNewChoice;
-  choiceDmBtn.onclick = () => { newChatInput.value = ''; showNewChat(); newChatInput.focus(); };
+
+  choiceDmBtn.onclick = () => { newChatInput.value = ''; showNewChat(); };
   choiceGroupBtn.onclick = () => {
     newGroupName.value = ''; newGroupMemberInput.value = ''; groupMembers = [];
-    renderChips(); showNewGroup(); newGroupName.focus();
+    renderChips(); showNewGroup();
   };
 
   function renderChips() {
@@ -751,6 +738,7 @@
   }
 
   function cleanMemberName(str) { return str.replace(/[\s,]+/g, ''); }
+  
   function addMemberFromInput() {
     const name = cleanMemberName(newGroupMemberInput.value);
     if (name && !groupMembers.includes(name)) { groupMembers.push(name); renderChips(); }
@@ -775,12 +763,7 @@
     send({ type: 'createChat', isGroup: true, name: gName, data: groupMembers });
   };
 
-  // ================== NAVIGATION ==================
-  mobileBackBtn.onclick = () => {
-    closeActiveChat();
-  };
-
-  // ================== RENDERING ==================
+  // ================== CHAT LIST RENDERING ==================
   function renderChatList(chats) {
     chatList.innerHTML = '';
     Object.keys(chatsById).forEach(k => delete chatsById[k]);
@@ -793,65 +776,98 @@
 
     chats.forEach(c => {
       chatsById[c.id] = c;
+      
       const li = document.createElement('li');
-      li.textContent = c.chatName;
       li.dataset.chatId = c.id;
-      chatList.appendChild(li);
+      li.dataset.chatName = c.chatName;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'chat-name';
+      nameSpan.textContent = c.chatName;
+      li.appendChild(nameSpan);
+
+      const count = unreadCounts[c.id] || 0;
+      if (count > 0) {
+        li.classList.add('unread');
+        const badge = document.createElement('span');
+        badge.className = 'unread-badge';
+        badge.textContent = count > 99 ? '99+' : count;
+        li.appendChild(badge);
+        
+        // Move unread chats to the top of the list
+        chatList.prepend(li);
+      } else {
+        chatList.appendChild(li);
+      }
     });
 
     const first = chatList.querySelector('li');
-    if (first && window.innerWidth > 768) selectChat(first);
+    if (first && window.innerWidth > 768 && !currentChatId) selectChat(first);
+  }
+
+  function updateChatUnreadUI(chatId, count) {
+    const li = chatList.querySelector(`li[data-chat-id="${chatId}"]`);
+    if (!li) return;
+
+    let badge = li.querySelector('.unread-badge');
+    
+    if (count > 0) {
+      li.classList.add('unread');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'unread-badge';
+        li.appendChild(badge);
+      }
+      badge.textContent = count > 99 ? '99+' : count;
+      
+      // Elevate to top on new message
+      chatList.prepend(li);
+    } else {
+      li.classList.remove('unread');
+      if (badge) badge.remove();
+    }
   }
 
   chatList.onclick = (e) => {
-    if (e.target.tagName === 'LI') selectChat(e.target);
+    const li = e.target.closest('li');
+    if (li) selectChat(li);
   };
 
   function closeActiveChat() {
-    // Если открыто модальное окно (удаление/пересылка) — закрываем сначала его
-    if (contextModal.style.display === 'flex') {
-      contextModal.style.display = 'none';
-      return;
-    }
-
-    // Если и так ничего не открыто — выходим
+    if (contextModal.style.display === 'flex') { contextModal.style.display = 'none'; return; }
     if (!currentChatId) return;
-
-    // Сбрасываем стейт
-    currentChatId = null;
-    oldestMessageId = null;
-    hasMoreHistory = true;
-    isLoadingHistory = false;
-    lastAppendedDate = null;
-
-    // Очищаем UI
+    
+    currentChatId = null; oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null;
     document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
-    chatTitle.textContent = '';
-    messagesList.innerHTML = '';
-    clearSelection();
-
-    // На мобилке выезжаем обратно в список чатов
+    chatTitle.textContent = ''; messagesList.innerHTML = ''; clearSelection();
     document.body.classList.remove('show-mobile-chat');
   }
 
   function selectChat(li) {
     document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
     li.classList.add('active');
-
+    
     currentChatId = parseInt(li.dataset.chatId);
     const chat = chatsById[currentChatId];
     chatTitle.textContent = chat ? chat.chatName : '?';
-
-    oldestMessageId = null;
-    hasMoreHistory = true;
-    isLoadingHistory = false;
-    lastAppendedDate = null; 
-    messagesList.innerHTML = '';
-    clearSelection();
+    
+    oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null; 
+    messagesList.innerHTML = ''; clearSelection();
+    
+    unreadCounts[currentChatId] = 0;
+    updateChatUnreadUI(currentChatId, 0);
 
     document.body.classList.add('show-mobile-chat');
     if (chat) send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
   }
+
+  // ================== MESSAGE RENDERING ==================
+  messagesList.onscroll = () => {
+    if (messagesList.scrollTop === 0 && hasMoreHistory && !isLoadingHistory && currentChatId && oldestMessageId) {
+      isLoadingHistory = true;
+      send({ type: 'getHistory', chatId: currentChatId, beforeId: oldestMessageId });
+    }
+  };
 
   function createMessageEl(sender, text, msgId, timeStr) {
     const li = document.createElement('li');
@@ -865,7 +881,10 @@
     const chat = chatsById[currentChatId];
     const isGroup = chat ? chat.isGroup : false;
 
-    textSpan.textContent = isGroup ? (sender + ': ' + text) : text;
+    // Show sender name only in group chats (excluding own messages)
+    const showName = isGroup && (sender !== myName);
+    textSpan.textContent = showName ? (sender + ': ' + text) : text;
+    
     li.appendChild(textSpan);
 
     const timeEl = document.createElement('span');
@@ -879,12 +898,10 @@
   }
 
   function renderHistory(msgs) {
-    if (msgs.length === 0) {
-      hasMoreHistory = false;
-      return;
-    }
+    if (msgs.length === 0) { hasMoreHistory = false; return; }
 
     if (oldestMessageId !== null) {
+      // Prepend older messages (pagination)
       const prevHeight = messagesList.scrollHeight;
       const fragment = document.createDocumentFragment();
       let currentBatchDate = null;
@@ -892,7 +909,6 @@
       for (let i = 0; i < msgs.length; i++) {
         const m = msgs[i];
         const dateStr = getDateStr(m.time);
-
         if (dateStr !== currentBatchDate) {
           const divider = document.createElement('li');
           divider.className = 'date-divider';
@@ -902,19 +918,18 @@
         }
         fragment.appendChild(createMessageEl(m.sender, m.message, m.id, m.time));
       }
-
       messagesList.insertBefore(fragment, messagesList.firstChild);
+      
+      // Maintain scroll position when new messages are loaded
       const newHeight = messagesList.scrollHeight;
       messagesList.scrollTop += (newHeight - prevHeight);
-
     } else {
+      // Initial load
       messagesList.innerHTML = '';
       let currentBatchDate = null;
-
       for (let i = 0; i < msgs.length; i++) {
         const m = msgs[i];
         const dateStr = getDateStr(m.time);
-
         if (dateStr !== currentBatchDate) {
           const divider = document.createElement('li');
           divider.className = 'date-divider';
@@ -924,7 +939,6 @@
         }
         messagesList.appendChild(createMessageEl(m.sender, m.message, m.id, m.time));
       }
-      
       messagesList.scrollTop = messagesList.scrollHeight;
       if (msgs.length > 0) lastAppendedDate = getDateStr(msgs[msgs.length - 1].time);
     }
@@ -945,18 +959,18 @@
     const li = createMessageEl(sender, text, msgId, timeStr);
     messagesList.appendChild(li);
     
+    // Auto-scroll only if we sent it or were already at the bottom
     if (sender === myName || isAtBottom) messagesList.scrollTop = messagesList.scrollHeight;
     
     lastAppendedDate = msgDate;
     return li;
   }
 
-  // ================== SEND MESSAGE ==================
+  // ================== MESSAGE SENDING ==================
   sendForm.onsubmit = (e) => {
     e.preventDefault();
     const text = sendInput.value.trim();
     if (!text || !currentChatId) return;
-
     const chat = chatsById[currentChatId];
     if (!chat) return;
 
@@ -972,7 +986,6 @@
         const li = addMessage(myName, text, null, timeStr);
         li.classList.add('pending');
     }
-
     sendInput.value = '';
     sendInput.focus();
   };
@@ -983,11 +996,7 @@
     if (myMsgs.length > 0) {
       const lastMsg = myMsgs[myMsgs.length - 1];
       const originalText = lastMsg.dataset.originalText; 
-
-      if (sendInput.value.trim() === '') {
-        sendInput.value = originalText;
-        sendInput.focus();
-      }
+      if (sendInput.value.trim() === '') { sendInput.value = originalText; sendInput.focus(); }
       lastMsg.remove();
     }
   }
@@ -996,19 +1005,25 @@
     const chat = chatsById[currentChatId];
     const msgId = p.msgId || p.id;
     const timeStr = p.time || new Date().toISOString();
-
-    if (p.chatId && p.chatId === currentChatId) {
-      addMessage(p.from, p.text, msgId, timeStr);
-      return;
+    
+    // Find target chat ID (especially for DMs where chatId might not be sent)
+    let targetChatId = p.chatId; 
+    if (!targetChatId) {
+        const foundChat = Object.values(chatsById).find(c => !c.isGroup && c.chatName === p.from);
+        if (foundChat) targetChatId = foundChat.id;
     }
 
-    if (!p.chatId && chat && !chat.isGroup && chat.chatName === p.from) {
+    if (!targetChatId) return;
+
+    if (targetChatId === currentChatId) {
       addMessage(p.from, p.text, msgId, timeStr);
-      return;
+    } else {
+      unreadCounts[targetChatId] = (unreadCounts[targetChatId] || 0) + 1;
+      updateChatUnreadUI(targetChatId, unreadCounts[targetChatId]);
     }
   }
 
-  // ================== SELECTION LOGIC ==================
+  // ================== MESSAGE SELECTION (PC & MOBILE) ==================
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
   messagesList.addEventListener('contextmenu', (e) => {
@@ -1024,8 +1039,7 @@
     if (!li || !li.dataset.msgId) return;
     isLongPress = false; 
     touchTimer = setTimeout(() => {
-      isLongPress = true; 
-      toggleSelection(li);
+      isLongPress = true; toggleSelection(li);
       if (navigator.vibrate) navigator.vibrate(50); 
     }, 500);
   }, { passive: true });
@@ -1034,10 +1048,7 @@
   messagesList.addEventListener('touchend', () => clearTimeout(touchTimer));
 
   messagesList.addEventListener('click', (e) => {
-    if (isLongPress) {
-      isLongPress = false; 
-      return;
-    }
+    if (isLongPress) { isLongPress = false; return; }
     if (selectedMsgIds.size > 0) {
       const li = e.target.closest('li');
       if (li && li.dataset.msgId) toggleSelection(li);
@@ -1047,19 +1058,14 @@
 
   function toggleSelection(li) {
     const id = li.dataset.msgId;
-    if (selectedMsgIds.has(id)) {
-      selectedMsgIds.delete(id);
-      li.classList.remove('selected');
-    } else {
-      selectedMsgIds.add(id);
-      li.classList.add('selected');
+    if (selectedMsgIds.has(id)) { selectedMsgIds.delete(id); li.classList.remove('selected'); }
+    else { selectedMsgIds.add(id); li.classList.add('selected'); }
+    
+    if (selectedMsgIds.size > 0) { 
+      msgActionsBtn.style.display = 'block'; 
+      msgActionsBtn.textContent = `⋮ (${selectedMsgIds.size})`; 
     }
-    if (selectedMsgIds.size > 0) {
-      msgActionsBtn.style.display = 'block';
-      msgActionsBtn.textContent = `⋮ (${selectedMsgIds.size})`;
-    } else {
-      msgActionsBtn.style.display = 'none';
-    }
+    else { msgActionsBtn.style.display = 'none'; }
   }
 
   function clearSelection() {
@@ -1068,18 +1074,11 @@
     msgActionsBtn.style.display = 'none';
   }
 
-  // ================== MODAL LOGIC ==================
+  // ================== MODALS ==================
   msgActionsBtn.onclick = () => { if (selectedMsgIds.size > 0) contextModal.style.display = 'flex'; };
   closeModalBtn.onclick = () => contextModal.style.display = 'none';
-  
-  contextModal.onclick = (e) => {
-    if (e.target === contextModal) contextModal.style.display = 'none';
-  };
-
-  modalForwardBtn.onclick = () => {
-    alert('Message forwarding will be available in future updates!');
-    contextModal.style.display = 'none';
-  };
+  contextModal.onclick = (e) => { if (e.target === contextModal) contextModal.style.display = 'none'; };
+  modalForwardBtn.onclick = () => { alert('Message forwarding will be available in future updates!'); contextModal.style.display = 'none'; };
 
   modalDeleteBtn.onclick = () => {
     selectedMsgIds.forEach(id => {
@@ -1087,45 +1086,38 @@
       const el = document.querySelector(`li[data-msg-id="${id}"]`);
       if (el) el.remove();
     });
-    clearSelection();
+    clearSelection(); 
     contextModal.style.display = 'none';
   };
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeActiveChat();
-    }
+  // ================== GLOBAL KEYBOARD & PWA ==================
+  document.addEventListener('keydown', (e) => { 
+    if (e.key === 'Escape') closeActiveChat(); 
   });
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
+  if ('serviceWorker' in navigator) { 
+    navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err)); 
   }
 
-    // ================== ФИКС КЛАВИАТУРЫ НА МОБИЛКЕ ==================
+  // ================== MOBILE KEYBOARD FIXES ==================
+  // Force the app container to respect the visual viewport height (fixes mobile keyboard gaps)
   if (window.visualViewport) {
     const fixKeyboardScroll = () => {
       const app = document.querySelector('.app');
       if (!app) return;
-
-      // Подстраиваем высоту под видимую область
       app.style.height = `${window.visualViewport.height}px`;
-
-      // Если Chrome попытался сдвинуть экран вниз (в пустоту) — жестко возвращаем наверх
-      if (window.visualViewport.offsetTop > 0) {
-        window.scrollTo(0, 0);
-      }
+      if (window.visualViewport.offsetTop > 0) window.scrollTo(0, 0);
     };
-
     window.visualViewport.addEventListener('resize', fixKeyboardScroll);
     window.visualViewport.addEventListener('scroll', fixKeyboardScroll);
   }
 
-  // При фокусе на инпут возвращаем скролл на место (чтобы не было прыжков)
+  // Prevent Chrome from scrolling the page when focusing the input
   const msgInput = document.querySelector('.send input');
-  if (msgInput) {
-    msgInput.addEventListener('focus', () => {
-      setTimeout(() => window.scrollTo(0, 0), 100);
-    });
+  if (msgInput) { 
+    msgInput.addEventListener('focus', () => { 
+      setTimeout(() => window.scrollTo(0, 0), 100); 
+    }); 
   }
 
   </script>
