@@ -141,16 +141,11 @@
     
     /* LITERAL PIXEL ART CIRCLE BADGE */
     .unread-badge {
-      /* No background color, we use the SVG */
       background: transparent;
-      
-      /* An 8x8 SVG circle drawn with literal pixels */
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1v-1z' fill='%2300FFFF'/%3E%3C/svg%3E");
       background-size: 100% 100%;
       background-repeat: no-repeat;
       background-position: center;
-      
-      /* MAGIC: Forces the browser to render the SVG without anti-aliasing (no smooth edges) */
       image-rendering: pixelated;
       
       color: #0D0221;
@@ -163,8 +158,6 @@
       font-weight: bold; 
       flex-shrink: 0; 
       padding: 0 4px;
-      
-      /* drop-shadow traces the pixelated outline, unlike box-shadow which would be a square */
       filter: drop-shadow(0 0 4px #00FFFF);
     }
 
@@ -180,7 +173,6 @@
       flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; 
       display: flex; flex-direction: column; gap: 10px; 
     }
-    /* Push messages to the bottom if they don't fill the container */
     .messages::before { content: ''; margin-top: auto; }
 
     .messages li { 
@@ -199,7 +191,6 @@
     .msg-text { word-wrap: break-word; }
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; }
 
-    /* Date dividers inside the chat */
     .messages li.date-divider {
       width: max-content; align-self: flex-start; margin: 15px 0 15px 20px; 
       background: rgba(13, 2, 33, 0.8); border: 1px solid #2e0777;
@@ -216,7 +207,6 @@
     .send input:focus { outline: none; border-color: #8a2be2; }
     .chat button { font-size: 30px; padding: 5px 30px; }
 
-    /* Hide native search clear button (used to bypass Chrome's password manager) */
     input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
 
     /* ================== MODALS & OVERLAYS ================== */
@@ -235,19 +225,16 @@
     .modal-content .action-btn { font-size: 20px; padding: 8px 0; width: 100%; }
     .modal-close { position: absolute; top: 15px; right: 15px; font-size: 20px; padding: 5px 12px; }
 
-    /* Hide scrollbars for a cleaner retro look */
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
     .chat-list, .messages { scrollbar-width: none; }
 
     /* ================== MOBILE ADAPTATION ================== */
     @media (max-width: 768px) {
-      /* Lock viewport to prevent native scrolling/bouncing */
       html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden !important; position: fixed; overscroll-behavior: none; }
       
       .app { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; }
       .sidebar { width: 100%; height: 100%; border-right: none; overflow-y: auto; }
 
-      /* Chat slides in from the right */
       .chat { 
         position: absolute; top: 0; left: 100%; width: 100%; height: 100%; 
         background: #0D0221;
@@ -267,17 +254,17 @@
         display: block !important; 
         font-size: 16px !important; padding: 5px 12px !important; margin: 0 !important; 
         box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5); 
+        position: relative;
+        z-index: 100;
       }
       
       .chat-header { display: flex; align-items: center; gap: 15px; padding: 10px 15px; background: rgba(26, 11, 46, 0.9); flex-shrink: 0; }
       .messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
       .messages li { max-width: 85%; }
       
-      /* Align own messages to the right */
       .messages .own { align-self: flex-end; margin-left: 0; margin-right: 0; border-color: #8a2be2; box-shadow: 0 0 8px #8a2be2; }
       .messages li.date-divider { align-self: center; margin: 15px auto; }
 
-      /* Shrink input area for mobile screens */
       .send { padding: 10px; gap: 8px; background: rgba(13, 2, 33, 0.9); flex-shrink: 0; }
       .send input { height: 40px; font-size: 14px; }
       .send button { font-size: 20px !important; padding: 5px 15px !important; height: 40px; display: flex; align-items: center; justify-content: center; }
@@ -407,20 +394,17 @@
   let currentChatId = null;
   let lastAppendedDate = null;
   const chatsById = {};
-  const unreadCounts = {}; // Tracks unread messages per chatId
+  const unreadCounts = {}; 
   let groupMembers = [];
   
-  // Selection State
   let selectedMsgIds = new Set();
   let touchTimer = null;
   let isLongPress = false;
 
-  // Pagination State
   let oldestMessageId = null;
   let hasMoreHistory = true;
   let isLoadingHistory = false;
 
-  // Outbox Queue (for offline mode)
   let outbox = [];
 
   // ================== WEBSOCKET SETUP ==================
@@ -429,7 +413,6 @@
   const connectionStatus = document.getElementById('connection-status');
 
   function connectWebSocket() {
-    // Prevent opening multiple connections simultaneously
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return; 
 
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -444,8 +427,6 @@
 
     ws.onclose = (e) => {
       console.log('ws closed, code:', e.code);
-      
-      // Custom code 4000 means the server kicked us (e.g., session opened elsewhere)
       if (e.code === 4000) {
           alert("Disconnected: Account opened in another tab/device. Click OK to refresh.");
           location.reload(); 
@@ -454,7 +435,6 @@
 
       connectionStatus.style.display = 'block';
       
-      // Move pending UI messages back to the outbox for a retry
       const pendingEls = messagesList.querySelectorAll('.own.pending:not([data-msg-id])');
       pendingEls.forEach(el => {
         const cid = parseInt(el.dataset.chatId);
@@ -483,8 +463,6 @@
               myName = p.name;
               document.documentElement.classList.remove('auth-pending');
               send({ type: 'getChats' });
-              
-              // Only redirect to chat list on initial login, not on silent reconnects
               if (!wasLoggedIn) showChats(); 
               flushOutbox();
           } else {
@@ -538,7 +516,6 @@
           break;
         case 'msgStatus':
           if (p.answer === 'ok' && p.msgId) {
-            // Attach the real message ID to the latest pending UI element
             const myMsgs = messagesList.querySelectorAll('.own.pending:not([data-msg-id])');
             if (myMsgs.length > 0) {
               const lastMsg = myMsgs[myMsgs.length - 1];
@@ -568,7 +545,6 @@
 
   // ================== WEBSOCKET HELPERS ==================
   document.addEventListener('visibilitychange', () => {
-    // Force reconnect if the tab wakes up and the socket is dead
     if (document.visibilityState === 'visible') {
       if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
         clearTimeout(reconnectTimeout);
@@ -604,7 +580,6 @@
   // ================== UTILITIES (TIME & DATE) ==================
   function parseDate(timeStr) {
     if (!timeStr) return new Date();
-    // Handle both ISO strings and standard SQLite timestamps
     if (timeStr.includes('T')) return new Date(timeStr);
     return new Date(timeStr.replace(' ', 'T') + 'Z');
   }
@@ -689,6 +664,11 @@
   choiceBackBtn.onclick = showChats;
   cancelChatBtn.onclick = showChats;
   cancelGroupBtn.onclick = showChats;
+
+  // ВОЗВРАЩЕННЫЙ И ПРАВИЛЬНО РАЗМЕЩЕННЫЙ ОБРАБОТЧИК КНОПКИ НАЗАД
+  mobileBackBtn.onclick = () => { 
+    closeActiveChat(); 
+  };
 
   // ================== AUTHENTICATION ACTIONS ==================
   loginBtn.onclick = () => {
@@ -881,7 +861,6 @@
     const chat = chatsById[currentChatId];
     const isGroup = chat ? chat.isGroup : false;
 
-    // Show sender name only in group chats (excluding own messages)
     const showName = isGroup && (sender !== myName);
     textSpan.textContent = showName ? (sender + ': ' + text) : text;
     
@@ -901,7 +880,6 @@
     if (msgs.length === 0) { hasMoreHistory = false; return; }
 
     if (oldestMessageId !== null) {
-      // Prepend older messages (pagination)
       const prevHeight = messagesList.scrollHeight;
       const fragment = document.createDocumentFragment();
       let currentBatchDate = null;
@@ -920,11 +898,9 @@
       }
       messagesList.insertBefore(fragment, messagesList.firstChild);
       
-      // Maintain scroll position when new messages are loaded
       const newHeight = messagesList.scrollHeight;
       messagesList.scrollTop += (newHeight - prevHeight);
     } else {
-      // Initial load
       messagesList.innerHTML = '';
       let currentBatchDate = null;
       for (let i = 0; i < msgs.length; i++) {
@@ -959,7 +935,6 @@
     const li = createMessageEl(sender, text, msgId, timeStr);
     messagesList.appendChild(li);
     
-    // Auto-scroll only if we sent it or were already at the bottom
     if (sender === myName || isAtBottom) messagesList.scrollTop = messagesList.scrollHeight;
     
     lastAppendedDate = msgDate;
@@ -1002,11 +977,9 @@
   }
 
   function handleIncomingMsg(p) {
-    const chat = chatsById[currentChatId];
     const msgId = p.msgId || p.id;
     const timeStr = p.time || new Date().toISOString();
     
-    // Find target chat ID (especially for DMs where chatId might not be sent)
     let targetChatId = p.chatId; 
     if (!targetChatId) {
         const foundChat = Object.values(chatsById).find(c => !c.isGroup && c.chatName === p.from);
@@ -1100,7 +1073,6 @@
   }
 
   // ================== MOBILE KEYBOARD FIXES ==================
-  // Force the app container to respect the visual viewport height (fixes mobile keyboard gaps)
   if (window.visualViewport) {
     const fixKeyboardScroll = () => {
       const app = document.querySelector('.app');
@@ -1112,7 +1084,6 @@
     window.visualViewport.addEventListener('scroll', fixKeyboardScroll);
   }
 
-  // Prevent Chrome from scrolling the page when focusing the input
   const msgInput = document.querySelector('.send input');
   if (msgInput) { 
     msgInput.addEventListener('focus', () => { 
