@@ -8,16 +8,18 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// FUNC SEND COULD BE FOUND IN structures.go
+
 func regWS(c *Client, req *Packet) {
 	log.Println("REG REQUEST:", req.Name)
 
-	ok := reg(req.Name, req.Password)
+	ok := reg(req.Name, req.Password) // reg could be found in dbFunctions.go
 	if !ok {
 		c.send(Packet{Type: "regStatus", Answer: "failed"})
 		return
 	}
 
-	token, err := addToken(req.Name)
+	token, err := addToken(req.Name) // adding a new token, func also in dbFunctions.go
 	if err != nil {
 		log.Println("addToken after reg:", err)
 		c.send(Packet{Type: "regStatus", Answer: "failed"})
@@ -25,7 +27,7 @@ func regWS(c *Client, req *Packet) {
 	}
 
 	c.Name = req.Name
-	addUserConn(c)
+	addUserConn(c) // adding Client struct in map after sucsessful reg
 
 	c.send(Packet{Type: "regStatus", Answer: "ok", Token: token})
 }
@@ -53,26 +55,6 @@ func loginWS(c *Client, req *Packet) {
 }
 
 func sendMsgWS(c *Client, req *Packet) {
-	if len(req.Text) == 0 || len(req.Text) > 1000 {
-		c.send(Packet{Type: "msgStatus", Answer: "invalidMsgLength"})
-		return
-	}
-
-	now := time.Now()
-	if now.Sub(c.LastMsgTime) > time.Second {
-		c.MsgCount = 0
-		c.LastMsgTime = now
-	}
-	c.MsgCount++
-	if c.MsgCount > 5 {
-		c.send(Packet{Type: "msgStatus", Answer: "slow_down"})
-		return
-	}
-
-	mu.Lock()
-	recipient, _ := clients[req.To]
-	mu.Unlock()
-
 	if c.Name == "" {
 		c.send(Packet{Type: "msgStatus", Answer: "not logged in"})
 		return
@@ -83,7 +65,27 @@ func sendMsgWS(c *Client, req *Packet) {
 		return
 	}
 
+	if len(req.Text) == 0 || len(req.Text) > 1000 { // not 0 symbols and not more than 1000
+		c.send(Packet{Type: "msgStatus", Answer: "invalidMsgLength"})
+		return
+	}
+
+	now := time.Now() // not more than 5 messages/second
+	if now.Sub(c.LastMsgTime) > time.Second {
+		c.MsgCount = 0
+		c.LastMsgTime = now
+	}
+	c.MsgCount++
+	if c.MsgCount > 5 {
+		c.send(Packet{Type: "msgStatus", Answer: "slow_down"})
+		return
+	}
+
 	if !req.IsGroup {
+
+		mu.Lock() // finding a recipient
+		recipient, _ := clients[req.To]
+		mu.Unlock()
 
 		chatID, id, ok := sendMsg(req, c.Name) //send to db, could be found in dbFunctions
 
@@ -95,6 +97,7 @@ func sendMsgWS(c *Client, req *Packet) {
 		if recipient != nil {
 			recipient.send(Packet{Type: "incomedMsg", From: c.Name, To: req.To, MsgId: int(id), Text: req.Text})
 		}
+
 		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id), ChatID: int(chatID)})
 	} else {
 		chatID, id, ok := sendMsg(req, c.Name)
@@ -104,11 +107,13 @@ func sendMsgWS(c *Client, req *Packet) {
 			return
 		}
 
+		//searching for all group members
 		rows, err := db.Query(`--sql
         SELECT u.name FROM users u
         JOIN chat_members cm ON cm.user_id = u.id
         WHERE cm.chat_id = ? AND u.name != ?
 		`, chatID, c.Name)
+
 		if err != nil {
 			log.Println("broadcast query error:", err)
 			return
@@ -125,7 +130,7 @@ func sendMsgWS(c *Client, req *Packet) {
 		}
 		rows.Close()
 
-		mu.Lock()
+		mu.Lock() // getting Clients from map by name
 		members := make([]*Client, 0, len(names))
 		for _, name := range names {
 			if cl, ok := clients[name]; ok {
@@ -134,7 +139,7 @@ func sendMsgWS(c *Client, req *Packet) {
 		}
 		mu.Unlock()
 
-		for _, m := range members {
+		for _, m := range members { // broadcast for all members
 			m.send(Packet{
 				Type:   "incomedMsg",
 				From:   c.Name,
@@ -148,14 +153,14 @@ func sendMsgWS(c *Client, req *Packet) {
 }
 
 func createChatWS(c *Client, req *Packet) {
-	mu.Lock()
-	r, exist := clients[req.To]
-	mu.Unlock()
-
 	if c.Name == "" {
 		c.send(Packet{Type: "newChatStatus", Answer: "not logged in"})
 		return
 	}
+
+	mu.Lock() // finding a recepient
+	r, exist := clients[req.To]
+	mu.Unlock()
 
 	ok, id := createChat(req, c.Name) // adding to db, could be found in dbFunctions
 
@@ -163,7 +168,7 @@ func createChatWS(c *Client, req *Packet) {
 		c.send(Packet{Type: "newChatStatus", Answer: "ok", ChatID: id})
 
 		if !req.IsGroup {
-			if exist {
+			if exist { // sending to recepient alert about new chat
 				r.send(Packet{Type: "newChat", ChatID: id})
 			}
 		} else {
@@ -174,14 +179,20 @@ func createChatWS(c *Client, req *Packet) {
 				c.send(Packet{Type: "newChatStatus", Answer: "failed"})
 				return
 			}
-			for _, user := range users {
-				mu.Lock()
-				r, exist := clients[user]
-				mu.Unlock()
 
+			members := make([]*Client, 0, len(users))
+
+			mu.Lock() // getting all online users from group
+			for _, user := range users {
+				r, exist := clients[user]
 				if exist {
-					r.send(Packet{Type: "newChat", ChatID: id})
+					members = append(members, r)
 				}
+			}
+			mu.Unlock()
+
+			for _, r := range members { // sending to all members alert about new chat
+				r.send(Packet{Type: "newChat", ChatID: id})
 			}
 		}
 
@@ -196,7 +207,7 @@ func getChatsWS(c *Client) {
 		return
 	}
 
-	list, ok := getChats(c.Name)
+	list, ok := getChats(c.Name) // could be found in dbFunctions.go
 
 	if !ok {
 		c.send(Packet{Type: "getChatStatus", Answer: "failed"})
@@ -245,13 +256,13 @@ func getHistoryWS(c *Client, req *Packet) {
 }
 
 func authWS(c *Client, req *Packet) {
-	name, ok := authCheck(req.Token)
+	name, ok := authCheck(req.Token) // could be found in dbFunctions.go
 	if !ok {
 		c.send(Packet{Type: "authStatus", Answer: "denied"})
 		return
 	}
 
-	ok = updateToken(req.Token)
+	ok = updateToken(req.Token) // could be found in dbFunctions.go
 
 	if !ok {
 		log.Println("updateToken error")
@@ -271,14 +282,14 @@ func delMsgWS(c *Client, req *Packet) {
 		return
 	}
 
-	group, isGroup, ok := delMsg(c.Name, req)
+	group, isGroup, ok := delMsg(c.Name, req) // could be found in dbFunctions.go
 
 	if !isGroup {
 		if ok {
 			c.send(Packet{Type: "delMsgStatus", Answer: "ok"})
 
 			mu.Lock()
-			r, exist := clients[group[0]]
+			r, exist := clients[group[0]] // for DM
 			mu.Unlock()
 
 			if exist {
@@ -338,7 +349,7 @@ func chatReadWS(c *Client, req *Packet) {
 
 		for _, cl := range members {
 			cl.send(Packet{Type: "chatRead", ChatID: req.ChatID})
-		} 
+		}
 	} else {
 		c.send(Packet{Type: "chatReadStatus", Answer: "failed"})
 	}

@@ -2,7 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Added maximum-scale and user-scalable to disable pinch-to-zoom -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>NeoTalk</title>
 
   <script>
@@ -27,6 +28,7 @@
         radial-gradient(2px 2px at 40% 90%, #E0D0FF, transparent);
       background-size: 200px 200px;
       overflow: hidden;
+      touch-action: pan-x pan-y; /* Prevents pinch-to-zoom on some mobile browsers */
     }
 
     .auth-pending #login-screen,
@@ -54,12 +56,12 @@
     button:active { transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px rgba(0,0,0,0.5); }
 
     /* ================== SCREENS ================== */
-    .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 95vh; color: #E0D0FF; }
-    .screen h1 { animation: flicker 3s infinite; font-size: 64px; margin-bottom: 70px; }
+    .screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 95vh; color: #E0D0FF; padding: 20px; box-sizing: border-box; text-align: center; }
+    .screen h1 { animation: flicker 3s infinite; font-size: 64px; margin-bottom: 70px; word-break: break-word; }
     .screen h2 { margin-top: 30px; font-size: 10px; color: #4f328a; }
-    .screen input { caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; margin-bottom: 10px; height: 30px; width: 320px; max-width: 90%; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; }
+    .screen input { caret-color: #8a2be2; font-family: 'Press Start 2P', monospace; margin-bottom: 10px; height: 30px; width: 320px; max-width: 100%; background-color: #1A0B2E; color: #E0D0FF; border-color: #2e0777; }
     .screen input:focus { outline: none; border-color: #8a2be2; }
-    .screen button { margin-top: 20px; font-size: 24px; padding: 5px 60px; }
+    .screen button { margin-top: 20px; font-size: 24px; padding: 5px 60px; width: auto; max-width: 100%; }
 
     #group-chips-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px; max-width: 320px; }
     .group-chip { background-color: #2e0777; color: #E0D0FF; border: 2px solid #8a2be2; padding: 5px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; font-family: 'Press Start 2P', monospace; box-shadow: 0 0 8px #8a2be2; }
@@ -111,7 +113,6 @@
     .messages li.selected { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
 
-    /* Styling for the message time and checkmarks */
     .msg-text { word-wrap: break-word; }
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; display: flex; align-items: center; gap: 4px; }
     .msg-time .ticks { color: #8a2be2; opacity: 0.8; }
@@ -172,6 +173,24 @@
       .send { padding: 10px; gap: 8px; background: rgba(13, 2, 33, 0.9); flex-shrink: 0; }
       .send input { height: 40px; font-size: 14px; }
       .send button { font-size: 20px !important; padding: 5px 15px !important; height: 40px; display: flex; align-items: center; justify-content: center; }
+
+      /* --- MOBILE UI FIXES FOR SCREENS (SETTINGS, CREATE, ETC) --- */
+      .screen { padding: 15px; }
+      .screen h1 { font-size: 28px; margin-bottom: 40px; line-height: 1.3; }
+      .screen h2 { font-size: 8px; }
+      .screen input { width: 100%; max-width: 300px; font-size: 12px; height: 35px; }
+      .screen button { 
+        width: 100%; 
+        max-width: 300px; 
+        font-size: 14px !important; 
+        padding: 12px 10px !important; 
+        margin-top: 15px;
+        white-space: normal;
+        word-break: break-word;
+        line-height: 1.5;
+      }
+      
+      #group-chips-container { max-width: 100%; }
     }
   </style>
   
@@ -188,7 +207,7 @@
   <!-- ================== HTML SCREENS ================== -->
   <div class="screen" id="login-screen">
     <h1>NeoTalk</h1>
-    <input id="login-name" placeholder="Name">
+    <input id="login-name" placeholder="Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <input id="login-pass" type="password" placeholder="Password">
     <button id="login-btn">log in</button>
     <button id="to-register">register</button>
@@ -196,7 +215,7 @@
 
   <div class="screen" id="reg-screen">
     <h1>NeoTalk</h1>
-    <input id="reg-name"  placeholder="Name">
+    <input id="reg-name"  placeholder="Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <input id="reg-pass"  type="password" placeholder="Password">
     <input id="reg-pass2" type="password" placeholder="Repeat password">
     <button id="reg-btn">register</button>
@@ -212,16 +231,16 @@
 
   <div class="screen" id="new-chat-screen">
     <h1>New Chat</h1>
-    <input id="new-chat-input" placeholder="Username">
+    <input id="new-chat-input" placeholder="Username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <button id="create-chat-btn">create</button>
     <button id="cancel-chat-btn">back</button>
   </div>
 
   <div class="screen" id="new-group-screen">
     <h1>New Group</h1>
-    <input id="new-group-name" placeholder="Group Name">
+    <input id="new-group-name" placeholder="Group Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <div id="group-chips-container"></div>
-    <input id="new-group-member-input" placeholder="Add member (Enter)">
+    <input id="new-group-member-input" placeholder="Add member (Enter)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <button id="create-group-btn">create</button>
     <button id="cancel-group-btn">back</button>
   </div>
@@ -429,7 +448,6 @@
           if (p.answer === 'failed') console.log('Failed to mark chat as read on server');
           break;
         case 'chatRead':
-          // The other person has read our messages in this chat
           if (p.chatId === currentChatId) {
              messagesList.querySelectorAll('.own .msg-time .ticks').forEach(el => {
                  el.classList.add('read');
