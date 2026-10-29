@@ -313,3 +313,33 @@ func delMsgWS(c *Client, req *Packet) {
 	}
 
 }
+
+func chatReadWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "chatReadStatus", Answer: "not logged in"})
+		return
+	}
+
+	group, ok := chatRead(c.Name, req)
+
+	if ok {
+		c.send(Packet{Type: "chatReadStatus", Answer: "ok"})
+
+		members := make([]*Client, 0, len(group))
+
+		mu.Lock()
+		for _, u := range group {
+			user, exist := clients[u]
+			if exist {
+				members = append(members, user)
+			}
+		}
+		mu.Unlock()
+
+		for _, cl := range members {
+			cl.send(Packet{Type: "chatRead", ChatID: req.ChatID})
+		} 
+	} else {
+		c.send(Packet{Type: "chatReadStatus", Answer: "failed"})
+	}
+}

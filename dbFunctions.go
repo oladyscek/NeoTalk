@@ -370,10 +370,16 @@ func getChats(sender string) ([]ChatFormat, bool) {
 			WHERE cm2.chat_id = c.id AND u.id != ?
 			LIMIT 1
 		)) AS name,
-		c.is_group
-	FROM chats c
-	JOIN chat_members cm ON cm.chat_id = c.id
-	WHERE cm.user_id = ?`, userId, userId)
+		c.is_group,
+		(SELECT COUNT(*) FROM messages m WHERE m.chat_id = c.id AND m.is_read = 0 AND m.sender_id != ?) AS unread_count,
+		COALESCE(
+		(SELECT MAX(created_at) FROM messages WHERE chat_id = c.id), 
+		c.created_at
+		) AS last_used
+		FROM chats c
+		JOIN chat_members cm ON cm.chat_id = c.id
+		WHERE cm.user_id = ?
+		ORDER BY last_used DESC`, userId, userId, userId)
 
 	if err != nil {
 		log.Println(err)
@@ -387,7 +393,7 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	for data.Next() {
 		var c ChatFormat
 		var isGroupInt int
-		if err := data.Scan(&c.ID, &c.ChatName, &isGroupInt); err != nil {
+		if err := data.Scan(&c.ID, &c.ChatName, &isGroupInt, &c.Unread, &c.LastUsed); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
@@ -433,7 +439,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	if req.BeforeID == 0 {
 		data, err = db.Query(`--sql
-		SELECT m.id, m.msg, m.created_at, u.name from messages m 
+		SELECT m.id, m.msg, m.created_at, u.name, m.is_read from messages m 
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ?
 		ORDER BY m.id DESC
@@ -445,7 +451,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		}
 	} else {
 		data, err = db.Query(`--sql
-		SELECT m.id, m.msg, m.created_at, u.name from messages m 
+		SELECT m.id, m.msg, m.created_at, u.name, m.is_read from messages m 
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ? and m.id < ?
 		ORDER BY m.id DESC
@@ -463,7 +469,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	for data.Next() {
 		var c HistoryFormat
-		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender); err != nil {
+		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender, &c.IsRead); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
@@ -702,5 +708,60 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 		}
 	} else {
 		return nil, false, false
+	}
+}
+
+func chatRead(name string, req *Packet) ([]string, bool) {
+	var ok int
+	err := db.QueryRow(`--sql
+	SELECT EXISTS
+	(SELECT 1 FROM chat_members c 
+	JOIN users u ON u.id = c.user_id
+	WHERE u.name = ? AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	if ok == 1 {
+		_, err = db.Exec(`--sql
+			UPDATE messages 
+			SET is_read = 1 
+			WHERE chat_id = ? 
+			AND is_read = 0 
+			AND sender_id != (SELECT id FROM users WHERE name = ?)`,
+			req.ChatID, name)
+
+		if err != nil {
+			log.Println(err)
+			return nil, false
+		}
+
+		users, err := db.Query(`--sql
+			SELECT u.name FROM users u
+			JOIN chat_members cm ON
+			u.id = cm.user_id 
+			WHERE cm.chat_id = ? AND u.name != ?`, req.ChatID, name)
+
+		if err != nil {
+			log.Println(err)
+			return nil, false
+		}
+
+		defer users.Close()
+
+		var groupMem []string
+		for users.Next() {
+			var u string
+			if err := users.Scan(&u); err != nil {
+				log.Println("scan error:", err)
+				continue
+			}
+			groupMem = append(groupMem, u)
+		}
+		return groupMem, true
+	} else {
+		return nil, false
 	}
 }

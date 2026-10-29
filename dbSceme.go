@@ -78,7 +78,8 @@ func createTables() {
 		chat_id    INTEGER NOT NULL,
 		sender_id  INTEGER NOT NULL,
 		msg        TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		is_read    bool not null DEFAULT 0)
 	`)
 
 	if err != nil {

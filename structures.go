@@ -14,12 +14,15 @@ type HistoryFormat struct {
 	Message string `json:"message"`
 	Time    string `json:"time"`
 	Sender  string `json:"sender"`
+	IsRead  bool   `json:"isRead"`
 }
 
 type ChatFormat struct {
 	ChatName string `json:"chatName"`
 	ID       int    `json:"id"`
 	IsGroup  bool   `json:"isGroup"`
+	LastUsed string `json:"lastUsed"`
+	Unread   int    `json:"unread"`
 }
 
 type Packet struct {
@@ -37,7 +40,7 @@ type Packet struct {
 	Token    string          `json:"token,omitempty"`
 	BeforeID int             `json:"beforeId,omitempty"`
 	HasMore  bool            `json:"hasMore,omitempty"`
-	Time     string			 `json:"time,omitempty"`
+	Time     string          `json:"time,omitempty"`
 }
 
 type Client struct {

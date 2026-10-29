@@ -97,6 +97,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			authWS(cl, &req)
 		case "delMsg":
 			delMsgWS(cl, &req)
+		case "chatRead":
+			chatReadWS(cl, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}
