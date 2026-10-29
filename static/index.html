@@ -111,11 +111,11 @@
     .messages li.selected { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
 
-    /* Styling for the read checkmarks */
-    .msg-time.read-msg { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; opacity: 1; }
-
+    /* Styling for the message time and checkmarks */
     .msg-text { word-wrap: break-word; }
-    .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; }
+    .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; display: flex; align-items: center; gap: 4px; }
+    .msg-time .ticks { color: #8a2be2; opacity: 0.8; }
+    .msg-time .ticks.read { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; opacity: 1; }
 
     .messages li.date-divider {
       width: max-content; align-self: flex-start; margin: 15px 0 15px 20px; 
@@ -431,12 +431,9 @@
         case 'chatRead':
           // The other person has read our messages in this chat
           if (p.chatId === currentChatId) {
-             messagesList.querySelectorAll('.own .msg-time').forEach(el => {
-                 el.classList.add('read-msg');
-                 // Replace single tick with double tick, preserving the time
-                 if (!el.textContent.startsWith('✔✔')) {
-                     el.textContent = '✔✔ ' + el.textContent.replace(/✔\s*/g, '');
-                 }
+             messagesList.querySelectorAll('.own .msg-time .ticks').forEach(el => {
+                 el.classList.add('read');
+                 el.textContent = '✔✔';
              });
           }
           break;
@@ -770,17 +767,14 @@
     const timeEl = document.createElement('span');
     timeEl.className = 'msg-time';
     
-    let statusIcon = '';
     if (sender === myName) {
-        if (isRead) {
-            statusIcon = '✔✔ ';
-            timeEl.classList.add('read-msg');
-        } else {
-            statusIcon = '✔ ';
-        }
+        const ticksEl = document.createElement('span');
+        ticksEl.className = isRead ? 'ticks read' : 'ticks';
+        ticksEl.textContent = isRead ? '✔✔' : '✔';
+        timeEl.appendChild(ticksEl);
     }
     
-    timeEl.textContent = statusIcon + formatMsgTime(timeStr);
+    timeEl.appendChild(document.createTextNode(formatMsgTime(timeStr)));
     li.appendChild(timeEl);
 
     if (msgId) li.dataset.msgId = msgId;
