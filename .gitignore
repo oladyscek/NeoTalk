@@ -18,3 +18,5 @@ server
 Thumbs.db
 
 saved/
+
+*.drawio

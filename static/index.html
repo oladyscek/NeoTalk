@@ -28,7 +28,7 @@
         radial-gradient(2px 2px at 40% 90%, #E0D0FF, transparent);
       background-size: 200px 200px;
       overflow: hidden;
-      touch-action: pan-x pan-y; /* Prevents pinch-to-zoom on some mobile browsers */
+      touch-action: pan-x pan-y;
     }
 
     .auth-pending #login-screen,
@@ -114,6 +114,7 @@
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
 
     .msg-text { word-wrap: break-word; }
+    /* Status (ticks) on the right, Time on the left */
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; display: flex; align-items: center; gap: 4px; }
     .msg-time .ticks { color: #8a2be2; opacity: 0.8; }
     .msg-time .ticks.read { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; opacity: 1; }
@@ -174,21 +175,12 @@
       .send input { height: 40px; font-size: 14px; }
       .send button { font-size: 20px !important; padding: 5px 15px !important; height: 40px; display: flex; align-items: center; justify-content: center; }
 
-      /* --- MOBILE UI FIXES FOR SCREENS (SETTINGS, CREATE, ETC) --- */
+      /* --- MOBILE UI FIXES FOR SCREENS --- */
       .screen { padding: 15px; }
       .screen h1 { font-size: 28px; margin-bottom: 40px; line-height: 1.3; }
       .screen h2 { font-size: 8px; }
       .screen input { width: 100%; max-width: 300px; font-size: 12px; height: 35px; }
-      .screen button { 
-        width: 100%; 
-        max-width: 300px; 
-        font-size: 14px !important; 
-        padding: 12px 10px !important; 
-        margin-top: 15px;
-        white-space: normal;
-        word-break: break-word;
-        line-height: 1.5;
-      }
+      .screen button { width: 100%; max-width: 300px; font-size: 14px !important; padding: 12px 10px !important; margin-top: 15px; white-space: normal; word-break: break-word; line-height: 1.5; }
       
       #group-chips-container { max-width: 100%; }
     }
@@ -317,6 +309,93 @@
 
   let outbox = [];
 
+  // ================== HISTORY & NAVIGATION MANAGEMENT ==================
+  function navigate(view, data = {}) {
+    if (history.state && history.state.view === view && history.state.chatId === data.chatId) return;
+    history.pushState({ view, ...data }, '');
+    renderView(history.state);
+  }
+
+  window.addEventListener('popstate', (e) => {
+    if (e.state) {
+      renderView(e.state);
+    } else {
+      if (localStorage.getItem('token')) {
+        history.replaceState({ view: 'chats' }, '');
+        renderView({ view: 'chats' });
+      } else {
+        history.replaceState({ view: 'login' }, '');
+        renderView({ view: 'login' });
+      }
+    }
+  });
+
+  function renderView(state) {
+    hideAllScreens();
+    document.body.classList.remove('show-mobile-chat');
+
+    if (state.view === 'chats') {
+      currentChatId = null;
+      chatTitle.textContent = '';
+      messagesList.innerHTML = '';
+      document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
+      clearSelection();
+    }
+
+    switch(state.view) {
+      case 'login':
+        loginScreen.style.display = 'flex';
+        break;
+      case 'reg':
+        regScreen.style.display = 'flex';
+        break;
+      case 'chats':
+        chatsScreen.style.display = 'block';
+        break;
+      case 'chat':
+        chatsScreen.style.display = 'block';
+        document.body.classList.add('show-mobile-chat');
+        if (currentChatId !== state.chatId) {
+          const li = chatList.querySelector(`li[data-chat-id="${state.chatId}"]`);
+          if (li) {
+            document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
+            li.classList.add('active');
+            currentChatId = state.chatId;
+            const chat = chatsById[currentChatId];
+            chatTitle.textContent = chat ? chat.chatName : '?';
+            oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null;
+            messagesList.innerHTML = ''; clearSelection();
+            clearUnreadUI(currentChatId);
+            send({ type: 'chatRead', chatId: currentChatId });
+            if (chat) send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
+          }
+        }
+        break;
+      case 'settings':
+        settingsScreen.style.display = 'flex';
+        break;
+      case 'new-choice':
+        newChoiceScreen.style.display = 'flex';
+        break;
+      case 'new-chat':
+        newChatScreen.style.display = 'flex';
+        newChatInput.focus();
+        break;
+      case 'new-group':
+        newGroupScreen.style.display = 'flex';
+        newGroupName.focus();
+        break;
+      case 'coming-soon':
+        soonScreen.style.display = 'flex';
+        break;
+    }
+  }
+
+  function transitionToChats() {
+    history.replaceState({ view: 'chats' }, '');
+    renderView({ view: 'chats' });
+  }
+
   // ================== WEBSOCKET SETUP ==================
   let ws;
   let reconnectTimeout = null;
@@ -373,7 +452,9 @@
               myName = p.name;
               document.documentElement.classList.remove('auth-pending');
               send({ type: 'getChats' });
-              if (!wasLoggedIn) showChats(); 
+              if (!wasLoggedIn) {
+                  transitionToChats();
+              }
               flushOutbox();
           } else {
               localStorage.removeItem('token');
@@ -387,7 +468,7 @@
             localStorage.setItem('token', p.token);
             document.documentElement.classList.remove('auth-pending');
             send({ type: 'getChats' });
-            showChats();
+            transitionToChats();
             flushOutbox();
           } else alert('login: ' + p.answer);
           break;
@@ -397,7 +478,7 @@
             localStorage.setItem('token', p.token);
             document.documentElement.classList.remove('auth-pending');
             send({ type: 'getChats' });
-            showChats();
+            transitionToChats();
             flushOutbox();
           } else alert('reg: ' + p.answer);
           break;
@@ -415,7 +496,7 @@
           handleIncomingMsg(p);
           break;
         case 'newChatStatus':
-          if (p.answer === 'ok') { showChats(); send({ type: 'getChats' }); } 
+          if (p.answer === 'ok') { transitionToChats(); send({ type: 'getChats' }); } 
           else alert('create error: ' + p.answer);
           break;
         case 'newChat':
@@ -565,22 +646,29 @@
     [loginScreen, regScreen, chatsScreen, settingsScreen, soonScreen, newChoiceScreen, newChatScreen, newGroupScreen].forEach(el => el.style.display = 'none');
   }
 
-  function showLogin() { hideAllScreens(); loginScreen.style.display = 'flex'; }
-  function showReg() { hideAllScreens(); regScreen.style.display = 'flex'; }
-  function showChats() { hideAllScreens(); chatsScreen.style.display = 'block'; document.body.classList.remove('show-mobile-chat'); }
-  function showSettings() { hideAllScreens(); settingsScreen.style.display = 'flex'; }
-  function showComingSoon() { hideAllScreens(); soonScreen.style.display = 'flex'; }
-  function showNewChoice() { hideAllScreens(); newChoiceScreen.style.display = 'flex'; }
-  function showNewChat() { hideAllScreens(); newChatScreen.style.display = 'flex'; newChatInput.focus(); }
-  function showNewGroup() { hideAllScreens(); newGroupScreen.style.display = 'flex'; newGroupName.focus(); }
+  function showLogin() { 
+    hideAllScreens(); 
+    loginScreen.style.display = 'flex'; 
+    history.replaceState({ view: 'login' }, '');
+  }
+  function showReg() { 
+    hideAllScreens(); 
+    regScreen.style.display = 'flex'; 
+    history.replaceState({ view: 'reg' }, '');
+  }
+  function showSettings() { navigate('settings'); }
+  function showComingSoon() { navigate('coming-soon'); }
+  function showNewChoice() { navigate('new-choice'); }
+  function showNewChat() { navigate('new-chat'); }
+  function showNewGroup() { navigate('new-group'); }
 
   toRegBtn.onclick = showReg;
   toLoginBtn.onclick = showLogin;
-  soonBackBtn.onclick = showSettings;
-  backSettingsButton.onclick = showChats;
-  choiceBackBtn.onclick = showChats;
-  cancelChatBtn.onclick = showChats;
-  cancelGroupBtn.onclick = showChats;
+  soonBackBtn.onclick = () => history.back();
+  backSettingsButton.onclick = () => history.back();
+  choiceBackBtn.onclick = () => history.back();
+  cancelChatBtn.onclick = () => history.back();
+  cancelGroupBtn.onclick = () => history.back();
 
   mobileBackBtn.onclick = () => { closeActiveChat(); };
 
@@ -719,43 +807,28 @@
       if (c.unread > 0) {
         setUnreadUI(c.id, c.unread);
       }
+      if (c.id === currentChatId) {
+        li.classList.add('active');
+      }
     });
-
-    const first = chatList.querySelector('li');
-    if (first && window.innerWidth > 768 && !currentChatId) selectChat(first);
+    // NO AUTO-SELECT HERE ANYMORE
   }
 
   chatList.onclick = (e) => {
     const li = e.target.closest('li');
-    if (li) selectChat(li);
+    if (li) {
+      const chatId = parseInt(li.dataset.chatId);
+      if (currentChatId === chatId) return;
+      navigate('chat', { chatId });
+    }
   };
 
-  function closeActiveChat() {
+    function closeActiveChat() {
     if (contextModal.style.display === 'flex') { contextModal.style.display = 'none'; return; }
-    if (!currentChatId) return;
-    
-    currentChatId = null; oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null;
-    document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
-    chatTitle.textContent = ''; messagesList.innerHTML = ''; clearSelection();
-    document.body.classList.remove('show-mobile-chat');
-  }
-
-  function selectChat(li) {
-    document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
-    li.classList.add('active');
-    
-    currentChatId = parseInt(li.dataset.chatId);
-    const chat = chatsById[currentChatId];
-    chatTitle.textContent = chat ? chat.chatName : '?';
-    
-    oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null; 
-    messagesList.innerHTML = ''; clearSelection();
-
-    clearUnreadUI(currentChatId);
-    send({ type: 'chatRead', chatId: currentChatId });
-
-    document.body.classList.add('show-mobile-chat');
-    if (chat) send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
+    if (currentChatId) {
+      history.replaceState({ view: 'chats' }, '');
+      renderView({ view: 'chats' });
+    }
   }
 
   // ================== MESSAGE RENDERING ==================
@@ -784,6 +857,7 @@
 
     const timeEl = document.createElement('span');
     timeEl.className = 'msg-time';
+    timeEl.appendChild(document.createTextNode(formatMsgTime(timeStr)));
     
     if (sender === myName) {
         const ticksEl = document.createElement('span');
@@ -792,7 +866,6 @@
         timeEl.appendChild(ticksEl);
     }
     
-    timeEl.appendChild(document.createTextNode(formatMsgTime(timeStr)));
     li.appendChild(timeEl);
 
     if (msgId) li.dataset.msgId = msgId;
@@ -997,8 +1070,16 @@
   };
 
   // ================== GLOBAL KEYBOARD & PWA ==================
-  document.addEventListener('keydown', (e) => { 
-    if (e.key === 'Escape') closeActiveChat(); 
+    document.addEventListener('keydown', (e) => { 
+    if (e.key === 'Escape') {
+      if (contextModal.style.display === 'flex') {
+        contextModal.style.display = 'none';
+      } else if (currentChatId) {
+        closeActiveChat();
+      } else if (history.state && history.state.view !== 'chats' && history.state.view !== 'login') {
+        history.back();
+      }
+    }
   });
 
   if ('serviceWorker' in navigator) { 
