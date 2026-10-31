@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -507,8 +508,11 @@ func addToken(name string) (string, error) {
 
 	token := generateToken()
 
+	hash := sha256.Sum256([]byte(token))
+	hashStr := hex.EncodeToString(hash[:])
+
 	_, err = db.Exec(`--sql
-	INSERT INTO sessions (token, user_id) VALUES (?,?)`, token, userId)
+	INSERT INTO sessions (token, user_id) VALUES (?,?)`, hashStr, userId)
 
 	if err != nil {
 		log.Println(err)
@@ -521,11 +525,14 @@ func addToken(name string) (string, error) {
 func authCheck(token string) (string, bool) {
 	var name string
 
+	hash := sha256.Sum256([]byte(token))
+	hashStr := hex.EncodeToString(hash[:])
+
 	err := db.QueryRow(`--sql
         SELECT u.name FROM sessions s
         JOIN users u ON u.id = s.user_id
         WHERE s.token = ?
-    `, token).Scan(&name)
+    `, hashStr).Scan(&name)
 
 	if err != nil {
 		return "", false
@@ -535,8 +542,11 @@ func authCheck(token string) (string, bool) {
 }
 
 func updateToken(token string) bool {
+	hash := sha256.Sum256([]byte(token))
+	hashStr := hex.EncodeToString(hash[:])
+
 	_, err := db.Exec(`--sql
-	UPDATE sessions SET last_used = CURRENT_TIMESTAMP WHERE token = ?`, token)
+	UPDATE sessions SET last_used = CURRENT_TIMESTAMP WHERE token = ?`, hashStr)
 
 	if err != nil {
 		log.Println(err)
