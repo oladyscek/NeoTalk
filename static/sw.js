@@ -1,17 +1,21 @@
 self.addEventListener('push', function(event) {
     let data = {};
-    try {
-        data = event.data.json();
-    } catch (e) {
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            data = { title: 'NeoTalk', body: 'New message' };
+        }
+    } else {
         data = { title: 'NeoTalk', body: 'New message' };
     }
 
     const options = {
-        body: data.body || 'New message',
+        body: data.body || 'Новое сообщение',
         icon: '/favicon.png',
         badge: '/favicon.png',
         vibrate: [100, 50, 100],
-        data: { url: '/' } // Куда перейти при клике
+        data: { url: '/' }
     };
 
     event.waitUntil(
@@ -19,15 +23,17 @@ self.addEventListener('push', function(event) {
     );
 });
 
-// Обработка клика по уведомлению — открываем вкладку
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
+    const urlToOpen = event.notification.data?.url || '/';
     event.waitUntil(
-        clients.matchAll({ type: 'window' }).then(windowClients => {
-            if (windowClients.length > 0) {
-                return windowClients[0].focus();
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (let i = 0; i < windowClients.length; i++) {
+                if (windowClients[i].url.includes(location.host) && 'focus' in windowClients[i]) {
+                    return windowClients[i].focus();
+                }
             }
-            return clients.openWindow('/');
+            if (clients.openWindow) return clients.openWindow(urlToOpen);
         })
     );
 });
