@@ -585,7 +585,13 @@
   }
   function formatMsgTime(timeStr) { return parseDate(timeStr).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
   function formatDateDivider(timeStr) { return parseDate(timeStr).toLocaleDateString('en-US', { day: 'numeric', month: 'long' }); }
-  function getDateStr(timeStr) { return parseDate(timeStr).toISOString().split('T')[0]; }
+  function getDateStr(timeStr) {
+    const d = parseDate(timeStr);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
   // ================== DOM ELEMENTS ==================
   const loginScreen    = document.getElementById('login-screen');
