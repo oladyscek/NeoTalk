@@ -242,6 +242,7 @@
     <button id="settingsProfileBtn">profile</button>
     <button id="settingsLogoutBtn">log out</button>
     <button id="settingsLangBtn">change language</button>
+    <button id="settingsNotifBtn">enable notifications</button>
     <button id="backSettingsButton">back</button>
   </div>
 
@@ -1104,6 +1105,17 @@
       setTimeout(() => window.scrollTo(0, 0), 100); 
     }); 
   }
+document.getElementById('settingsNotifBtn').onclick = subscribeToPush;
+
+async function subscribeToPush() {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return alert('No permission');
+    const res = await fetch('/api/vapid_public');
+    const publicKey = await res.text();
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: publicKey });
+    send({ type: 'savePushSub', data: sub });
+}
 
   </script>
 </body>

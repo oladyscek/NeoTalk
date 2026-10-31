@@ -775,3 +775,28 @@ func chatRead(name string, req *Packet) ([]string, bool) {
 		return nil, false
 	}
 }
+
+func savePushSub(name string, subJSON string) bool {
+	_, err := db.Exec(`--sql
+		INSERT OR REPLACE INTO push_subscriptions (user_id, subscription) 
+		VALUES ((SELECT id FROM users WHERE name = ?), ?)`, name, subJSON)
+
+	if err != nil {
+		log.Println("savePushSub error:", err)
+		return false
+	}
+	return true
+}
+
+func getPushSub(name string) (string, bool) {
+	var sub string
+
+	err := db.QueryRow(`--sql
+		SELECT subscription FROM push_subscriptions 
+		WHERE user_id = (SELECT id FROM users WHERE name = ?)`, name).Scan(&sub)
+
+	if err != nil {
+		return "", false
+	}
+	return sub, true
+}

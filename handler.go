@@ -108,6 +108,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			delMsgWS(cl, &req)
 		case "chatRead":
 			chatReadWS(cl, &req)
+		case "savePushSub":
+			savePushSubWS(cl, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}

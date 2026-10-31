@@ -24,7 +24,7 @@ func createTables() {
 	}
 
 	db.SetMaxOpenConns(1)
-	
+
 	_, err = db.Exec(`--sql
 	CREATE table if not EXISTS users (
 		id integer primary key, 
@@ -89,6 +89,16 @@ func createTables() {
 	_, err = db.Exec(`--sql
 	CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at DESC)
 	`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(`--sql
+		CREATE TABLE IF NOT EXISTS push_subscriptions (
+		user_id INTEGER PRIMARY KEY,
+		subscription TEXT NOT NULL
+	)`)
 
 	if err != nil {
 		log.Fatal(err)

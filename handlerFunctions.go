@@ -96,6 +96,8 @@ func sendMsgWS(c *Client, req *Packet) {
 
 		if recipient != nil {
 			recipient.send(Packet{Type: "incomedMsg", From: c.Name, To: req.To, MsgId: int(id), Text: req.Text})
+		} else {
+			go sendPushNotification(req.To, "NeoTalk: "+c.Name, req.Text)
 		}
 
 		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id), ChatID: int(chatID)})
@@ -130,11 +132,14 @@ func sendMsgWS(c *Client, req *Packet) {
 		}
 		rows.Close()
 
-		mu.Lock() // getting Clients from map by name
+		mu.Lock()
 		members := make([]*Client, 0, len(names))
+		offlineNames := make([]string, 0, len(names))
 		for _, name := range names {
 			if cl, ok := clients[name]; ok {
 				members = append(members, cl)
+			} else {
+				offlineNames = append(offlineNames, name)
 			}
 		}
 		mu.Unlock()
@@ -147,6 +152,9 @@ func sendMsgWS(c *Client, req *Packet) {
 				ChatID: int(chatID),
 				Text:   req.Text,
 			})
+		}
+		for _, name := range offlineNames {
+			go sendPushNotification(name, "NeoTalk: "+c.Name, req.Text)
 		}
 		c.send(Packet{Type: "msgStatus", Answer: "ok", MsgId: int(id), ChatID: int(chatID)})
 	}
@@ -352,5 +360,14 @@ func chatReadWS(c *Client, req *Packet) {
 		}
 	} else {
 		c.send(Packet{Type: "chatReadStatus", Answer: "failed"})
+	}
+}
+
+func savePushSubWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		return
+	}
+	if savePushSub(c.Name, string(req.Data)) {
+		log.Println("push subscription saved for:", c.Name)
 	}
 }
