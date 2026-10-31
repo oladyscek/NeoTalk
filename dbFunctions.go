@@ -16,12 +16,33 @@ import (
 
 var validUsername = regexp.MustCompile(`^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$`)
 
+var reservedNames = map[string]bool{
+	"neotalkadmin": true, "neotalk_admin": true,
+	"neotalkmod": true, "neotalksupport": true, "neotalkbot": true,
+	"admin": true, "administrator": true, "root": true, "moderator": true,
+	"mod": true, "owner": true, "staff": true, "sysop": true,
+	"support": true, "help": true, "security": true, "system": true,
+	"server": true, "bot": true, "info": true, "news": true,
+	"noreply": true, "no-reply": true,
+	"www": true, "mail": true, "api": true, "webmaster": true,
+	"localhost": true, "null": true, "undefined": true,
+	"test": true, "demo": true, "guest": true, "user": true,
+}
+
+func isReserved(name string) bool {
+	return reservedNames[strings.ToLower(name)]
+}
+
 func reg(name string, password string) bool {
 	if name == "" || password == "" {
 		return false
 	}
 
 	name = strings.TrimSpace(name)
+
+	if isReserved(name) {
+		return false
+	}
 
 	if !validUsername.MatchString(name) || password == "" {
 		return false
@@ -30,7 +51,7 @@ func reg(name string, password string) bool {
 	var isExist int
 
 	err := db.QueryRow(`--sql
-	SELECT EXISTS(SELECT 1 from users where name = ?)`, name).Scan(&isExist)
+	SELECT EXISTS(SELECT 1 from users where name = ? COLLATE NOCASE)`, name).Scan(&isExist)
 
 	if err != nil {
 		log.Println(err)
@@ -62,7 +83,7 @@ func login(name string, password string) bool {
 	var hash string
 
 	err := db.QueryRow(`--sql
-	SELECT password FROM users WHERE name = ?`, name).Scan(&hash)
+	SELECT password FROM users WHERE name = ? COLLATE NOCASE`, name).Scan(&hash)
 
 	if err != nil {
 		log.Println(err)
@@ -81,7 +102,7 @@ func createChat(req *Packet, creator string) (bool, int) {
 		var isExist int
 
 		err := db.QueryRow(`--sql
-			SELECT EXISTS(SELECT 1 from users where name = ?)`, req.To).Scan(&isExist) //checking existance of second user
+			SELECT EXISTS(SELECT 1 from users where name = ? COLLATE NOCASE)`, req.To).Scan(&isExist) //checking existance of second user
 
 		if err != nil {
 			log.Println(err)
@@ -92,7 +113,7 @@ func createChat(req *Packet, creator string) (bool, int) {
 			var userId int
 
 			err = db.QueryRow(`--sql
-				SELECT id from users where name = ?`, req.To).Scan(&userId) // searching id of second user
+				SELECT id from users where name = ? COLLATE NOCASE`, req.To).Scan(&userId) // searching id of second user
 
 			if err != nil {
 				log.Println(err)
@@ -102,7 +123,7 @@ func createChat(req *Packet, creator string) (bool, int) {
 			var creatorId int
 
 			err = db.QueryRow(`--sql
-				SELECT id from users where name = ?`, creator).Scan(&creatorId) // searching id of creator
+				SELECT id from users where name = ? COLLATE NOCASE`, creator).Scan(&creatorId) // searching id of creator
 
 			if err != nil {
 				log.Println(err)
@@ -186,15 +207,13 @@ func createChat(req *Packet, creator string) (bool, int) {
 		}
 
 		for _, user := range users { // adding all the users to new chat
-
-			if user == creator { // creator shouldnt be added with oter users like that
+			if strings.EqualFold(user, creator) { // creator shouldnt be added with oter users like that
 				continue
 			}
-
 			var exist int
 
 			err := db.QueryRow(`--sql
-				SELECT EXISTS(SELECT 1 from users where name = ?)`, user).Scan(&exist) // checking existance of each user
+				SELECT EXISTS(SELECT 1 from users where name = ? COLLATE NOCASE)`, user).Scan(&exist) // checking existance of each user
 
 			if err != nil {
 				log.Println(err)
@@ -206,7 +225,7 @@ func createChat(req *Packet, creator string) (bool, int) {
 				var userId int
 
 				err = db.QueryRow(`--sql
-					SELECT id from users where name = ?`, user).Scan(&userId) // getting id of user to add him to group
+					SELECT id from users where name = ? COLLATE NOCASE`, user).Scan(&userId) // getting id of user to add him to group
 
 				if err != nil {
 					log.Println(err)
@@ -227,7 +246,7 @@ func createChat(req *Packet, creator string) (bool, int) {
 		var creatorId int
 
 		err = db.QueryRow(`--sql
-			SELECT id from users where name = ?`, creator).Scan(&creatorId) // getting creator id
+			SELECT id from users where name = ? COLLATE NOCASE`, creator).Scan(&creatorId) // getting creator id
 
 		if err != nil {
 			log.Println(err)
@@ -251,7 +270,7 @@ func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 		var isExist int
 
 		err := db.QueryRow(`--sql
-			SELECT EXISTS(SELECT 1 from users where name = ?)`, req.To).Scan(&isExist) //checking existance of second user
+			SELECT EXISTS(SELECT 1 from users where name = ? COLLATE NOCASE)`, req.To).Scan(&isExist) //checking existance of second user
 
 		if err != nil {
 			log.Println(err)
@@ -262,7 +281,7 @@ func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 			var userId int
 
 			err = db.QueryRow(`--sql
-				SELECT id from users where name = ?`, req.To).Scan(&userId) // searching id of second user
+				SELECT id from users where name = ? COLLATE NOCASE`, req.To).Scan(&userId) // searching id of second user
 
 			if err != nil {
 				log.Println(err)
@@ -272,7 +291,7 @@ func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 			var senderId int
 
 			err = db.QueryRow(`--sql
-				SELECT id from users where name = ?`, sender).Scan(&senderId) // searching id of sender
+				SELECT id from users where name = ? COLLATE NOCASE`, sender).Scan(&senderId) // searching id of sender
 
 			if err != nil {
 				log.Println(err)
@@ -313,7 +332,7 @@ func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 		var senderId int
 
 		err := db.QueryRow(`--sql
-		select id from users where name = ?`, sender).Scan(&senderId)
+		select id from users where name = ? COLLATE NOCASE`, sender).Scan(&senderId)
 
 		if err != nil {
 			log.Println(err)
@@ -356,7 +375,7 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	var userId int
 
 	err := db.QueryRow(`--sql
-	select id from users where name = ?`, sender).Scan(&userId)
+	select id from users where name = ? COLLATE NOCASE`, sender).Scan(&userId)
 
 	if err != nil {
 		log.Println(err)
@@ -414,7 +433,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 	var userId int
 
 	err := db.QueryRow(`--sql
-	select id from users where name = ?`, sender).Scan(&userId)
+	select id from users where name = ? COLLATE NOCASE`, sender).Scan(&userId)
 
 	if err != nil {
 		log.Println(err)
@@ -499,7 +518,7 @@ func addToken(name string) (string, error) {
 	var userId int
 
 	err := db.QueryRow(`--sql
-	SELECT id FROM users WHERE name = ?`, name).Scan(&userId)
+	SELECT id FROM users WHERE name = ? COLLATE NOCASE`, name).Scan(&userId)
 
 	if err != nil {
 		log.Println(err)
@@ -562,7 +581,7 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 	SELECT EXISTS
 	(SELECT 1 FROM chat_members c 
 	JOIN users u ON u.id = c.user_id
-	WHERE u.name = ? AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
+	WHERE u.name = ? COLLATE NOCASE AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
 
 	if err != nil {
 		log.Println(err)
@@ -577,7 +596,7 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 		from chats c JOIN chat_members cm ON
 		c.id = cm.chat_id
 		WHERE c.id = ? AND cm.user_id = 
-		(SELECT id FROM users WHERE name = ?)`, req.ChatID, name).Scan(&isGroup, &isAdmin)
+		(SELECT id FROM users WHERE name = ? COLLATE NOCASE)`, req.ChatID, name).Scan(&isGroup, &isAdmin)
 
 		if err != nil {
 			log.Println(err)
@@ -589,7 +608,7 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 			SELECT u.name FROM users u
 			JOIN chat_members cm ON
 			u.id = cm.user_id 
-			WHERE cm.chat_id = ? AND u.name != ?`, req.ChatID, name)
+			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
 
 			if err != nil {
 				log.Println(err)
@@ -635,7 +654,7 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 				SELECT u.name FROM users u
 				JOIN chat_members cm ON
 				u.id = cm.user_id 
-				WHERE cm.chat_id = ? AND u.name != ?`, req.ChatID, name)
+				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
 
 				if err != nil {
 					log.Println(err)
@@ -657,7 +676,7 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 				res, err := db.Exec(`--sql
 				DELETE FROM messages 
 				WHERE id = ? AND sender_id =
-				(SELECT id FROM users WHERE name = ?)`, req.MsgId, name)
+				(SELECT id FROM users WHERE name = ? COLLATE NOCASE)`, req.MsgId, name)
 
 				if err != nil {
 					log.Println(err)
@@ -683,7 +702,7 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 				err = db.QueryRow(`--sql
 				SELECT u.name from users u 
 				JOIN chat_members cm ON u.id = cm.user_id
-				WHERE cm.chat_id = ? AND u.name != ?`, req.ChatID, name).Scan(&user)
+				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name).Scan(&user)
 
 				if err != nil {
 					log.Println(err)
@@ -727,7 +746,7 @@ func chatRead(name string, req *Packet) ([]string, bool) {
 	SELECT EXISTS
 	(SELECT 1 FROM chat_members c 
 	JOIN users u ON u.id = c.user_id
-	WHERE u.name = ? AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
+	WHERE u.name = ? COLLATE NOCASE AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
 
 	if err != nil {
 		log.Println(err)
@@ -740,7 +759,7 @@ func chatRead(name string, req *Packet) ([]string, bool) {
 			SET is_read = 1 
 			WHERE chat_id = ? 
 			AND is_read = 0 
-			AND sender_id != (SELECT id FROM users WHERE name = ?)`,
+			AND sender_id != (SELECT id FROM users WHERE name = ? COLLATE NOCASE)`,
 			req.ChatID, name)
 
 		if err != nil {
@@ -752,7 +771,7 @@ func chatRead(name string, req *Packet) ([]string, bool) {
 			SELECT u.name FROM users u
 			JOIN chat_members cm ON
 			u.id = cm.user_id 
-			WHERE cm.chat_id = ? AND u.name != ?`, req.ChatID, name)
+			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
 
 		if err != nil {
 			log.Println(err)
@@ -779,7 +798,7 @@ func chatRead(name string, req *Packet) ([]string, bool) {
 func savePushSub(name string, subJSON string) bool {
 	_, err := db.Exec(`--sql
 		INSERT OR REPLACE INTO push_subscriptions (user_id, subscription) 
-		VALUES ((SELECT id FROM users WHERE name = ?), ?)`, name, subJSON)
+		VALUES ((SELECT id FROM users WHERE name = ? COLLATE NOCASE), ?)`, name, subJSON)
 
 	if err != nil {
 		log.Println("savePushSub error:", err)
@@ -793,7 +812,7 @@ func getPushSub(name string) (string, bool) {
 
 	err := db.QueryRow(`--sql
 		SELECT subscription FROM push_subscriptions 
-		WHERE user_id = (SELECT id FROM users WHERE name = ?)`, name).Scan(&sub)
+		WHERE user_id = (SELECT id FROM users WHERE name = ? COLLATE NOCASE)`, name).Scan(&sub)
 
 	if err != nil {
 		return "", false

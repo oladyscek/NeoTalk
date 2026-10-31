@@ -104,5 +104,13 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	_, err = db.Exec(`--sql
+		CREATE UNIQUE INDEX IF NOT EXISTS
+		idx_users_name_nocase ON users(name COLLATE NOCASE)`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("TABLES CREATED")
 }
