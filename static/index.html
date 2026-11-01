@@ -2,7 +2,6 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <!-- Added maximum-scale and user-scalable to disable pinch-to-zoom -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>NeoTalk</title>
 
@@ -78,7 +77,11 @@
     .sidebar-header button:hover { background-color: #2e0777; box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5), 0 0 8px #8a2be2; }
 
     .chat-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-    .chat-list li { padding: 12px 15px; border-bottom: 1px solid #2e0777; cursor: pointer; font-size: 10px; transition: background 0.15s; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .chat-list li { 
+      padding: 12px 15px; border-bottom: 1px solid #2e0777; cursor: pointer; font-size: 10px; 
+      transition: background 0.15s; display: flex; align-items: center; justify-content: space-between; gap: 8px; 
+      user-select: none; -webkit-touch-callout: none; 
+    }
     .chat-list li:hover { background: #2e0777; }
     .chat-list li.active { background: #2e0777; border-left: 3px solid #8a2be2; padding-left: 12px; }
 
@@ -112,9 +115,22 @@
     .messages .other { margin-right: auto; }
     .messages li.selected { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
+    .messages li.system-msg {
+      align-self: center;
+      background: none;
+      border: none;
+      box-shadow: none;
+      color: #8a2be2;
+      font-size: 8px;
+      text-transform: uppercase;
+      text-align: center;
+      max-width: 90%;
+      padding: 5px;
+      margin: 10px 0;
+      font-family: 'Press Start 2P', monospace;
+    }
 
     .msg-text { word-wrap: break-word; }
-    /* Status (ticks) on the right, Time on the left */
     .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; display: flex; align-items: center; gap: 4px; }
     .msg-time .ticks { color: #8a2be2; opacity: 0.8; }
     .msg-time .ticks.read { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; opacity: 1; }
@@ -135,8 +151,16 @@
 
     /* ================== MODALS & OVERLAYS ================== */
     #msg-actions-btn { display: none; font-size: 20px; padding: 5px 15px; }
-    #context-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 2, 33, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
-    .modal-content { background: #1A0B2E; border: 2px solid #8a2be2; box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777; padding: 40px 30px 30px 30px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 20px; width: 350px; max-width: 90%; text-align: center; }
+    #context-modal, #chat-context-modal { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(13, 2, 33, 0.85); z-index: 1000; justify-content: center; align-items: center; 
+      backdrop-filter: blur(3px); 
+    }
+    .modal-content { 
+      background: #1A0B2E; border: 2px solid #8a2be2; box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777; 
+      padding: 40px 30px 30px 30px; position: relative; display: flex; flex-direction: column; 
+      align-items: center; gap: 20px; width: 350px; max-width: 90%; text-align: center; 
+    }
     .modal-content h2 { color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2; }
     .modal-content .action-btn { font-size: 20px; padding: 8px 0; width: 100%; }
     .modal-close { position: absolute; top: 15px; right: 15px; font-size: 20px; padding: 5px 12px; }
@@ -175,7 +199,6 @@
       .send input { height: 40px; font-size: 14px; }
       .send button { font-size: 20px !important; padding: 5px 15px !important; height: 40px; display: flex; align-items: center; justify-content: center; }
 
-      /* --- MOBILE UI FIXES FOR SCREENS --- */
       .screen { padding: 15px; }
       .screen h1 { font-size: 28px; margin-bottom: 40px; line-height: 1.3; }
       .screen h2 { font-size: 8px; }
@@ -201,54 +224,54 @@
     <h1>NeoTalk</h1>
     <input id="login-name" placeholder="Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <input id="login-pass" type="password" placeholder="Password">
-    <button id="login-btn">log in</button>
-    <button id="to-register">register</button>
+    <button id="login-btn">Log In</button>
+    <button id="to-register">Register</button>
   </div>
 
   <div class="screen" id="reg-screen">
     <h1>NeoTalk</h1>
     <input id="reg-name"  placeholder="Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <input id="reg-pass"  type="password" placeholder="Password">
-    <input id="reg-pass2" type="password" placeholder="Repeat password">
-    <button id="reg-btn">register</button>
-    <button id="to-login">back to log in</button>
+    <input id="reg-pass2" type="password" placeholder="Repeat Password">
+    <button id="reg-btn">Register</button>
+    <button id="to-login">Back to Log In</button>
   </div>
 
   <div class="screen" id="new-choice-screen">
     <h1>Create...</h1>
-    <button id="choice-dm-btn">new chat</button>
-    <button id="choice-group-btn">new group</button>
-    <button id="choice-back-btn">back</button>
+    <button id="choice-dm-btn">New Chat</button>
+    <button id="choice-group-btn">New Group</button>
+    <button id="choice-back-btn">Back</button>
   </div>
 
   <div class="screen" id="new-chat-screen">
     <h1>New Chat</h1>
     <input id="new-chat-input" placeholder="Username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
-    <button id="create-chat-btn">create</button>
-    <button id="cancel-chat-btn">back</button>
+    <button id="create-chat-btn">Create</button>
+    <button id="cancel-chat-btn">Back</button>
   </div>
 
   <div class="screen" id="new-group-screen">
     <h1>New Group</h1>
     <input id="new-group-name" placeholder="Group Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <div id="group-chips-container"></div>
-    <input id="new-group-member-input" placeholder="Add member (Enter)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
-    <button id="create-group-btn">create</button>
-    <button id="cancel-group-btn">back</button>
+    <input id="new-group-member-input" placeholder="Add Member (Enter)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    <button id="create-group-btn">Create</button>
+    <button id="cancel-group-btn">Back</button>
   </div>
 
   <div class="screen" id="settings-screen">
-    <h1>settings</h1>
-    <button id="settingsProfileBtn">profile</button>
-    <button id="settingsLogoutBtn">log out</button>
-    <button id="settingsLangBtn">change language</button>
-    <button id="settingsNotifBtn">enable notifications</button>
-    <button id="backSettingsButton">back</button>
+    <h1>Settings</h1>
+    <button id="settingsProfileBtn">Profile</button>
+    <button id="settingsLogoutBtn">Log Out</button>
+    <button id="settingsLangBtn">Change Language</button>
+    <button id="settingsNotifBtn">Enable Notifications</button>
+    <button id="backSettingsButton">Back</button>
   </div>
 
   <div class="screen" id="coming-soon">
-    <h1>coming soon..</h1>
-    <button id="soonBackBtn">back</button>
+    <h1>Coming soon..</h1>
+    <button id="soonBackBtn">Back</button>
   </div>
 
   <!-- ================== MAIN CHAT INTERFACE ================== -->
@@ -275,7 +298,7 @@
         </header>
         <ul class="messages"></ul>
         <form class="send">
-          <input type="search" name="message" placeholder="message..." maxlength="1000" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+          <input type="search" name="message" placeholder="Message..." maxlength="1000" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
           <button>→</button>
         </form>
       </main>
@@ -286,9 +309,17 @@
   <div id="context-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-modal-btn">×</button>
-      <h2>Actions</h2>
+      <h2>Message Actions</h2>
       <button class="action-btn" id="modal-forward-btn">Forward</button>
       <button class="action-btn" id="modal-delete-btn">Delete</button>
+    </div>
+  </div>
+
+  <div id="chat-context-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-chat-modal-btn">×</button>
+      <h2>Chat Actions</h2>
+      <button class="action-btn" id="chat-modal-action-btn">Delete Chat</button>
     </div>
   </div>
 
@@ -303,6 +334,9 @@
   let selectedMsgIds = new Set();
   let touchTimer = null;
   let isLongPress = false;
+
+  let chatTouchTimer = null;
+  let selectedChatIdForAction = null;
 
   let oldestMessageId = null;
   let hasMoreHistory = true;
@@ -471,7 +505,7 @@
             send({ type: 'getChats' });
             transitionToChats();
             flushOutbox();
-          } else alert('login: ' + p.answer);
+          } else alert('Login: ' + p.answer);
           break;
         case 'regStatus':
           if (p.answer === 'ok') {
@@ -481,7 +515,7 @@
             send({ type: 'getChats' });
             transitionToChats();
             flushOutbox();
-          } else alert('reg: ' + p.answer);
+          } else alert('Registration: ' + p.answer);
           break;
         case 'getChatStatus':
           if (p.answer === 'ok') renderChatList(p.data || []);
@@ -498,7 +532,7 @@
           break;
         case 'newChatStatus':
           if (p.answer === 'ok') { transitionToChats(); send({ type: 'getChats' }); } 
-          else alert('create error: ' + p.answer);
+          else alert('Create error: ' + p.answer);
           break;
         case 'newChat':
           send({ type: 'getChats' });
@@ -531,11 +565,21 @@
           break;
         case 'chatRead':
           if (p.chatId === currentChatId) {
-             messagesList.querySelectorAll('.own .msg-time .ticks').forEach(el => {
-                 el.classList.add('read');
-                 el.textContent = '✔✔';
-             });
+            messagesList.querySelectorAll('.own .msg-time .ticks').forEach(el => {
+                el.classList.add('read');
+                el.textContent = '✔✔';
+            });
           }
+          break;
+        case 'delChatStatus':
+          if (p.answer === 'ok') {
+            removeChatFromUI(p.chatId);
+          } else {
+            alert('Failed to delete chat');
+          }
+          break;
+        case 'delChat':
+          removeChatFromUI(p.chatId);
           break;
       }
     };
@@ -591,7 +635,7 @@
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-}
+  }
 
   // ================== DOM ELEMENTS ==================
   const loginScreen    = document.getElementById('login-screen');
@@ -647,6 +691,11 @@
   const closeModalBtn = document.getElementById('close-modal-btn');
   const modalDeleteBtn = document.getElementById('modal-delete-btn');
   const modalForwardBtn = document.getElementById('modal-forward-btn');
+
+  // Chat context modal elements
+  const chatContextModal = document.getElementById('chat-context-modal');
+  const closeChatModalBtn = document.getElementById('close-chat-modal-btn');
+  const chatModalActionBtn = document.getElementById('chat-modal-action-btn');
 
   // ================== SCREEN NAVIGATION ==================
   function hideAllScreens() {
@@ -818,7 +867,6 @@
         li.classList.add('active');
       }
     });
-    // NO AUTO-SELECT HERE ANYMORE
   }
 
   chatList.onclick = (e) => {
@@ -830,8 +878,64 @@
     }
   };
 
-    function closeActiveChat() {
+  chatList.addEventListener('contextmenu', (e) => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    e.preventDefault();
+    openChatContextMenu(li);
+  });
+
+  chatList.addEventListener('touchstart', (e) => {
+    const li = e.target.closest('li');
+    if (!li) return;
+    chatTouchTimer = setTimeout(() => {
+      openChatContextMenu(li);
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 500);
+  }, { passive: true });
+
+  chatList.addEventListener('touchend', () => clearTimeout(chatTouchTimer));
+  chatList.addEventListener('touchmove', () => clearTimeout(chatTouchTimer));
+
+  function openChatContextMenu(li) {
+    const chatId = parseInt(li.dataset.chatId);
+    const chat = chatsById[chatId];
+    if (!chat) return;
+
+    selectedChatIdForAction = chatId;
+    
+    if (chat.isGroup) {
+      chatModalActionBtn.textContent = 'Leave Group';
+    } else {
+      chatModalActionBtn.textContent = 'Delete Chat';
+    }
+
+    chatContextModal.style.display = 'flex';
+  }
+
+  chatModalActionBtn.onclick = () => {
+    if (selectedChatIdForAction) {
+      send({ type: 'delChat', chatId: selectedChatIdForAction });
+      chatContextModal.style.display = 'none';
+    }
+  };
+
+  closeChatModalBtn.onclick = () => { chatContextModal.style.display = 'none'; };
+  chatContextModal.onclick = (e) => { if (e.target === chatContextModal) chatContextModal.style.display = 'none'; };
+
+  function removeChatFromUI(chatId) {
+    const li = chatList.querySelector(`li[data-chat-id="${chatId}"]`);
+    if (li) li.remove();
+    
+    if (currentChatId === chatId) {
+      closeActiveChat();
+    }
+    delete chatsById[chatId];
+  }
+
+  function closeActiveChat() {
     if (contextModal.style.display === 'flex') { contextModal.style.display = 'none'; return; }
+    if (chatContextModal.style.display === 'flex') { chatContextModal.style.display = 'none'; return; }
     if (currentChatId) {
       history.replaceState({ view: 'chats' }, '');
       renderView({ view: 'chats' });
@@ -848,6 +952,15 @@
 
   function createMessageEl(sender, text, msgId, timeStr, isRead) {
     const li = document.createElement('li');
+
+    // Handle system messages
+    if (sender === 'SYSTEM') {
+      li.className = 'system-msg';
+      li.textContent = text;
+      if (msgId) li.dataset.msgId = msgId;
+      return li;
+    }
+
     li.className = (sender === myName) ? 'own' : 'other';
     li.dataset.originalText = text;
     li.dataset.time = timeStr || new Date().toISOString();
@@ -994,10 +1107,12 @@
 
     if (!targetChatId) return;
 
+    // Is this the currently open chat?
     if (targetChatId === currentChatId) {
       addMessage(p.from, p.text, msgId, timeStr);
       send({ type: 'chatRead', chatId: currentChatId });
     } else {
+      // Message is for ANOTHER chat
       const li = chatList.querySelector(`li[data-chat-id="${targetChatId}"]`);
       if (li) {
           const badge = li.querySelector('.unread-badge');
@@ -1005,6 +1120,21 @@
           if (count === 99) count = 100; else if (count < 99) count++;
           setUnreadUI(targetChatId, count);
           moveChatToTop(targetChatId); 
+      }
+
+      // Show local notification if the tab is in the background
+      if (document.hidden && Notification.permission === "granted") {
+          const notification = new Notification(p.from, {
+              body: p.text,
+              icon: '/favicon.png'
+          });
+          // Focus the window on click
+          notification.onclick = () => {
+              window.focus();
+              notification.close();
+              // Optionally open the chat directly:
+              // navigate('chat', { chatId: targetChatId });
+          };
       }
     }
   }
@@ -1077,10 +1207,12 @@
   };
 
   // ================== GLOBAL KEYBOARD & PWA ==================
-    document.addEventListener('keydown', (e) => { 
+  document.addEventListener('keydown', (e) => { 
     if (e.key === 'Escape') {
       if (contextModal.style.display === 'flex') {
         contextModal.style.display = 'none';
+      } else if (chatContextModal.style.display === 'flex') {
+        chatContextModal.style.display = 'none';
       } else if (currentChatId) {
         closeActiveChat();
       } else if (history.state && history.state.view !== 'chats' && history.state.view !== 'login') {
@@ -1111,38 +1243,38 @@
       setTimeout(() => window.scrollTo(0, 0), 100); 
     }); 
   }
-document.getElementById('settingsNotifBtn').onclick = subscribeToPush;
 
-// Вспомогательная функция для конвертации ключа
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-        .replace(/\-/g, '+')
-        .replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
+  document.getElementById('settingsNotifBtn').onclick = subscribeToPush;
 
-async function subscribeToPush() {
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return alert('No permission');
-    
-    const res = await fetch('/api/vapid_public');
-    const publicKey = await res.text();
-    
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({ 
-        userVisibleOnly: true, 
-        applicationServerKey: urlBase64ToUint8Array(publicKey)
-    });
-    
-    send({ type: 'savePushSub', data: sub });
-    alert('noatifications enabled');
-}
+  function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+          .replace(/\-/g, '+')
+          .replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+  }
+
+  async function subscribeToPush() {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return alert('No permission');
+      
+      const res = await fetch('/api/vapid_public');
+      const publicKey = await res.text();
+      
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({ 
+          userVisibleOnly: true, 
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+      
+      send({ type: 'savePushSub', data: sub });
+      alert('Notifications enabled');
+  }
 
   </script>
 </body>

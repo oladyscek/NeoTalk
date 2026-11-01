@@ -48,6 +48,12 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	// Create SYSTEM user for system messages (password is invalid bcrypt hash, so login is impossible)
+	_, err = db.Exec(`INSERT OR IGNORE INTO users (id, name, password) VALUES (200, 'SYSTEM', '!')`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	_, err = db.Exec(`--sql
 	CREATE table if not EXISTS chats (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,

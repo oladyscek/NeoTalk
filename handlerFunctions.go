@@ -371,3 +371,55 @@ func savePushSubWS(c *Client, req *Packet) {
 		log.Println("push subscription saved for:", c.Name)
 	}
 }
+
+func delChatWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "delChatStatus", Answer: "not logged in"})
+		return
+	}
+
+	group, isGroup, ok := delChat(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "delChatStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "delChatStatus", Answer: "ok", ChatID: req.ChatID})
+
+	if !isGroup {
+		mu.Lock()
+		r, exist := clients[group[0]]
+		mu.Unlock()
+
+		if exist {
+			r.send(Packet{Type: "delChat", ChatID: req.ChatID})
+		}
+	} else {
+		msgText := c.Name + " left the group"
+
+		msgID, dbOk := addSystemMessage(req.ChatID, msgText)
+
+		members := make([]*Client, 0, len(group))
+		mu.Lock()
+		for _, u := range group {
+			user, exist := clients[u]
+			if exist {
+				members = append(members, user)
+			}
+		}
+		mu.Unlock()
+
+		if dbOk {
+			for _, cl := range members {
+				cl.send(Packet{
+					Type:   "incomedMsg",
+					From:   "SYSTEM",
+					ChatID: req.ChatID,
+					MsgId:  int(msgID),
+					Text:   msgText,
+				})
+			}
+		}
+	}
+}

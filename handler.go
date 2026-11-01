@@ -106,6 +106,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			authWS(cl, &req)
 		case "delMsg":
 			delMsgWS(cl, &req)
+		case "delChat":
+			delChatWS(cl, &req)
 		case "chatRead":
 			chatReadWS(cl, &req)
 		case "savePushSub":

@@ -101,6 +101,10 @@ func createChat(req *Packet, creator string) (bool, int) {
 
 		var isExist int
 
+		if strings.EqualFold(req.To, "SYSTEM") {
+			return false, -1
+		}
+
 		err := db.QueryRow(`--sql
 			SELECT EXISTS(SELECT 1 from users where name = ? COLLATE NOCASE)`, req.To).Scan(&isExist) //checking existance of second user
 
@@ -210,6 +214,9 @@ func createChat(req *Packet, creator string) (bool, int) {
 			if strings.EqualFold(user, creator) { // creator shouldnt be added with oter users like that
 				continue
 			}
+			if strings.EqualFold(user, creator) || strings.EqualFold(user, "SYSTEM") {
+				continue
+			}
 			var exist int
 
 			err := db.QueryRow(`--sql
@@ -267,6 +274,11 @@ func createChat(req *Packet, creator string) (bool, int) {
 func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 	var msgID int64
 	if !req.IsGroup {
+
+		if strings.EqualFold(req.To, "SYSTEM") {
+			return -1, -1, false
+		}
+
 		var isExist int
 
 		err := db.QueryRow(`--sql
@@ -482,7 +494,6 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 			return nil, false
 		}
 	}
-
 	defer data.Close()
 
 	var results []HistoryFormat
@@ -818,4 +829,173 @@ func getPushSub(name string) (string, bool) {
 		return "", false
 	}
 	return sub, true
+}
+
+func delChat(name string, req *Packet) ([]string, bool, bool) {
+	var ok int
+	err := db.QueryRow(`--sql
+	SELECT EXISTS
+	(SELECT 1 FROM chat_members c 
+	JOIN users u ON u.id = c.user_id
+	WHERE u.name = ? COLLATE NOCASE AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	if ok == 1 {
+		var isGroup bool
+
+		err = db.QueryRow(`--sql
+		SELECT is_group from chats WHERE id = ?`, req.ChatID).Scan(&isGroup)
+
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
+		}
+
+		if isGroup {
+			users, err := db.Query(`--sql
+			SELECT u.name FROM users u
+			JOIN chat_members cm ON
+			u.id = cm.user_id 
+			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			defer users.Close()
+
+			var groupMem []string
+			for users.Next() {
+				var u string
+				if err := users.Scan(&u); err != nil {
+					log.Println("scan error:", err)
+					continue
+				}
+				groupMem = append(groupMem, u)
+			}
+
+			res, err := db.Exec(`--sql
+			delete from chat_members where chat_id = ? and user_id =
+			(SELECT id from users where name = ? COLLATE NOCASE)`, req.ChatID, name)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			rows, err := res.RowsAffected()
+			if err != nil {
+				log.Println("rows affected error:", err)
+				return nil, false, false
+			}
+
+			if rows == 0 {
+				log.Println("no rows deleted, possibly wrong ID or permissions")
+				return nil, false, false
+			}
+
+			var exist int
+
+			err = db.QueryRow(`--sql
+			SELECT EXISTS(SELECT 1 from chat_members WHERE chat_id = ?)`, req.ChatID).Scan(&exist)
+
+			if exist != 1 {
+				_, err = db.Exec(`--sql
+				delete from messages where chat_id = ?`, req.ChatID)
+
+				if err != nil {
+					log.Println(err)
+					return nil, false, false
+				}
+
+				_, err = db.Exec(`--sql
+				delete from chats where id = ?`, req.ChatID)
+
+				if err != nil {
+					log.Println(err)
+					return nil, false, false
+				}
+			}
+
+			return groupMem, true, true
+		} else {
+			var user string
+
+			err = db.QueryRow(`--sql
+				SELECT u.name from users u 
+				JOIN chat_members cm ON u.id = cm.user_id
+				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name).Scan(&user)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			res, err := db.Exec(`--sql
+				DELETE FROM chat_members WHERE chat_id = ?`, req.ChatID)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			rows, err := res.RowsAffected()
+			if err != nil {
+				log.Println("rows affected error:", err)
+				return nil, false, false
+			}
+
+			if rows == 0 {
+				log.Println("no rows deleted, possibly wrong ID or permissions")
+				return nil, false, false
+			}
+
+			_, err = db.Exec(`--sql
+				delete from messages where chat_id = ?`, req.ChatID)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			_, err = db.Exec(`--sql
+				delete from chats where id = ?`, req.ChatID)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			oneUser := make([]string, 0, 1)
+			oneUser = append(oneUser, user)
+
+			return oneUser, false, true
+		}
+	} else {
+		log.Println("user not in chat:", req.ChatID)
+		return nil, false, false
+	}
+}
+
+func addSystemMessage(chatID int, text string) (int64, bool) {
+	res, err := db.Exec(`--sql
+		INSERT INTO messages (chat_id, sender_id, msg) VALUES (?, 200, ?)`, chatID, text)
+	
+	if err != nil {
+		log.Println("addSystemMessage error:", err)
+		return -1, false
+	}
+
+	msgID, err := res.LastInsertId()
+	if err != nil {
+		log.Println("addSystemMessage LastInsertId error:", err)
+		return -1, false
+	}
+
+	return msgID, true
 }
