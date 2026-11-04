@@ -18,11 +18,14 @@ type HistoryFormat struct {
 }
 
 type ChatFormat struct {
-	ChatName string `json:"chatName"`
-	ID       int    `json:"id"`
-	IsGroup  bool   `json:"isGroup"`
-	LastUsed string `json:"lastUsed"`
-	Unread   int    `json:"unread"`
+	ChatName      string `json:"chatName"`
+	ID            int    `json:"id"`
+	IsGroup       bool   `json:"isGroup"`
+	LastUsed      string `json:"lastUsed"`
+	Unread        int    `json:"unread"`
+	LastMsg       string `json:"lastMsg"`
+	LastMsgSender string `json:"lastMsgSender"`
+	LastMsgIsRead bool   `json:"lastMsgIsRead"`
 }
 
 type Packet struct {

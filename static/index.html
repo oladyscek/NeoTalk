@@ -71,7 +71,8 @@
     #chats { height: 100vh; }
     .app { display: flex; height: 100vh; color: #E0D0FF; }
 
-    .sidebar { width: 220px; background: #1A0B2E; border-right: 2px solid #2e0777; display: flex; flex-direction: column; }
+    /* Increased sidebar width for desktop to fit new layout */
+    .sidebar { width: 320px; background: #1A0B2E; border-right: 2px solid #2e0777; display: flex; flex-direction: column; }
     .sidebar-header { padding: 15px; font-size: 12px; border-bottom: 2px solid #2e0777; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
     .sidebar-header button { font-size: 14px; padding: 4px 10px; }
     .sidebar-header button:hover { background-color: #2e0777; box-shadow: 0 4px 0 #1a0b2e, 0 8px 10px rgba(0,0,0,0.5), 0 0 8px #8a2be2; }
@@ -79,14 +80,75 @@
     .chat-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
     .chat-list li { 
       padding: 12px 15px; border-bottom: 1px solid #2e0777; cursor: pointer; font-size: 10px; 
-      transition: background 0.15s; display: flex; align-items: center; justify-content: space-between; gap: 8px; 
+      transition: background 0.15s; display: flex; align-items: center; gap: 12px; 
       user-select: none; -webkit-touch-callout: none; 
     }
     .chat-list li:hover { background: #2e0777; }
     .chat-list li.active { background: #2e0777; border-left: 3px solid #8a2be2; padding-left: 12px; }
 
-    .chat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    
+    /* Pixel Avatar */
+    .chat-avatar {
+      width: 32px; height: 32px; background: #0D0221; border: 2px solid #8a2be2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #00FFFF; text-shadow: 0 0 5px #00FFFF;
+      flex-shrink: 0; box-shadow: 0 0 5px #8a2be2;
+    }
+
+    /* Chat Info Container */
+    .chat-info { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+      flex: 1; 
+      overflow: hidden; 
+    }
+
+    /* Top Row: Name + Time/Ticks */
+    .chat-top { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 8px;
+    }
+
+    .chat-name { 
+      flex: 1;
+      font-size: 10px; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+    }
+
+    .chat-meta { 
+      display: flex; 
+      align-items: center; 
+      gap: 4px; 
+      font-size: 8px; 
+      color: #8a2be2; 
+      flex-shrink: 0;
+    }
+
+    .chat-meta .ticks { font-size: 8px; opacity: 0.6; }
+    .chat-meta .ticks.read { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; opacity: 1; }
+
+    /* Bottom Row: Last Msg + Badge */
+    .chat-bottom { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 8px;
+    }
+
+    .chat-last-msg { 
+      flex: 1;
+      font-size: 8px; 
+      color: #8a2be2; 
+      opacity: 0.7; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+    }
+
     .chat-list li.unread { background: rgba(46, 7, 119, 0.4); }
     .chat-list li.unread .chat-name { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; }
     
@@ -115,6 +177,7 @@
     .messages .other { margin-right: auto; }
     .messages li.selected { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
+    
     .messages li.system-msg {
       align-self: center;
       background: none;
@@ -544,6 +607,9 @@
               const lastMsg = myMsgs[myMsgs.length - 1];
               lastMsg.dataset.msgId = p.msgId;
               lastMsg.classList.remove('pending');
+              
+              // Optimistically update the sidebar preview
+              updateChatPreview(p.chatId, lastMsg.dataset.originalText, myName, false, new Date().toISOString());
             }
           } else if (p.answer === 'failed') {
             revertLastMessage('Server error while sending.');
@@ -569,6 +635,15 @@
                 el.classList.add('read');
                 el.textContent = '✔✔';
             });
+          }
+          // Update sidebar ticks if the last message in this chat is mine
+          const chatLi = chatList.querySelector(`li[data-chat-id="${p.chatId}"]`);
+          if (chatLi) {
+            const ticks = chatLi.querySelector('.chat-meta .ticks');
+            if (ticks) {
+              ticks.classList.add('read');
+              ticks.textContent = '✔✔';
+            }
           }
           break;
         case 'delChatStatus':
@@ -692,7 +767,6 @@
   const modalDeleteBtn = document.getElementById('modal-delete-btn');
   const modalForwardBtn = document.getElementById('modal-forward-btn');
 
-  // Chat context modal elements
   const chatContextModal = document.getElementById('chat-context-modal');
   const closeChatModalBtn = document.getElementById('close-chat-modal-btn');
   const chatModalActionBtn = document.getElementById('chat-modal-action-btn');
@@ -828,12 +902,52 @@
       if (!badge) {
         badge = document.createElement('span');
         badge.className = 'unread-badge';
-        li.appendChild(badge);
+        const bottomDiv = li.querySelector('.chat-bottom');
+        if (bottomDiv) bottomDiv.appendChild(badge);
       }
       badge.textContent = count > 99 ? '99+' : count;
     } else {
       clearUnreadUI(chatId);
     }
+  }
+
+  function updateChatPreview(chatId, text, sender, isRead, timeStr) {
+    const li = chatList.querySelector(`li[data-chat-id="${chatId}"]`);
+    if (!li) return;
+    
+    const chat = chatsById[chatId];
+    if (!chat) return;
+
+    const topDiv = li.querySelector('.chat-top');
+    const bottomDiv = li.querySelector('.chat-bottom');
+    const metaSpan = li.querySelector('.chat-meta');
+    
+    // Update time and ticks
+    if (metaSpan) {
+      let ticksHTML = '';
+      if (sender === myName) {
+        ticksHTML = `<span class="ticks ${isRead ? 'read' : ''}">${isRead ? '✔✔' : '✔'}</span>`;
+      }
+      metaSpan.innerHTML = `${ticksHTML}<span>${formatMsgTime(timeStr)}</span>`;
+    }
+
+    // Update text preview
+    const msgSpan = bottomDiv.querySelector('.chat-last-msg');
+    if (msgSpan) {
+      if (chat.isGroup && sender && sender !== 'SYSTEM' && sender !== myName) {
+        msgSpan.textContent = sender + ': ' + text;
+      } else {
+        msgSpan.textContent = text;
+      }
+    }
+
+    // Update internal state
+    chat.lastMsg = text;
+    chat.lastMsgSender = sender;
+    chat.lastMsgIsRead = isRead;
+    chat.lastUsed = timeStr;
+    
+    moveChatToTop(chatId);
   }
 
   function renderChatList(chats) {
@@ -853,19 +967,68 @@
       li.dataset.chatId = c.id;
       li.dataset.chatName = c.chatName;
 
+      // Avatar
+      const avatar = document.createElement('div');
+      avatar.className = 'chat-avatar';
+      avatar.textContent = c.chatName.charAt(0).toUpperCase();
+      li.appendChild(avatar);
+
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'chat-info';
+
+      // Top Row
+      const topDiv = document.createElement('div');
+      topDiv.className = 'chat-top';
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'chat-name';
       nameSpan.textContent = c.chatName;
-      li.appendChild(nameSpan);
+      topDiv.appendChild(nameSpan);
+
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'chat-meta';
+
+      if (c.lastMsgSender === myName) {
+        const ticksEl = document.createElement('span');
+        ticksEl.className = c.lastMsgIsRead ? 'ticks read' : 'ticks';
+        ticksEl.textContent = c.lastMsgIsRead ? '✔✔' : '✔';
+        metaSpan.appendChild(ticksEl);
+      }
+      const timeStr = formatMsgTime(c.lastUsed);
+      const timeEl = document.createElement('span');
+      timeEl.textContent = timeStr;
+      metaSpan.appendChild(timeEl);
+
+      topDiv.appendChild(metaSpan);
+      infoDiv.appendChild(topDiv);
+
+      // Bottom Row
+      const bottomDiv = document.createElement('div');
+      bottomDiv.className = 'chat-bottom';
+
+      const msgSpan = document.createElement('span');
+      msgSpan.className = 'chat-last-msg';
+      if (c.isGroup && c.lastMsgSender && c.lastMsgSender !== 'SYSTEM' && c.lastMsgSender !== myName) {
+        msgSpan.textContent = c.lastMsgSender + ': ' + c.lastMsg;
+      } else {
+        msgSpan.textContent = c.lastMsg;
+      }
+      bottomDiv.appendChild(msgSpan);
+
+      if (c.unread > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'unread-badge';
+        badge.textContent = c.unread > 99 ? '99+' : c.unread;
+        bottomDiv.appendChild(badge);
+      }
+
+      infoDiv.appendChild(bottomDiv);
+      li.appendChild(infoDiv);
 
       chatList.appendChild(li);
 
-      if (c.unread > 0) {
-        setUnreadUI(c.id, c.unread);
-      }
-      if (c.id === currentChatId) {
-        li.classList.add('active');
-      }
+      if (c.unread > 0) li.classList.add('unread');
+      if (c.id === currentChatId) li.classList.add('active');
     });
   }
 
@@ -953,7 +1116,6 @@
   function createMessageEl(sender, text, msgId, timeStr, isRead) {
     const li = document.createElement('li');
 
-    // Handle system messages
     if (sender === 'SYSTEM') {
       li.className = 'system-msg';
       li.textContent = text;
@@ -1073,12 +1235,12 @@
         executeSend(msgObj);
         const li = addMessage(myName, text, null, timeStr);
         li.classList.add('pending');
-        moveChatToTop(currentChatId); 
+        updateChatPreview(currentChatId, text, myName, false, timeStr);
     } else {
         outbox.push(msgObj);
         const li = addMessage(myName, text, null, timeStr);
         li.classList.add('pending');
-        moveChatToTop(currentChatId);
+        updateChatPreview(currentChatId, text, myName, false, timeStr);
     }
     sendInput.value = '';
     sendInput.focus();
@@ -1107,33 +1269,30 @@
 
     if (!targetChatId) return;
 
-    // Is this the currently open chat?
     if (targetChatId === currentChatId) {
       addMessage(p.from, p.text, msgId, timeStr);
       send({ type: 'chatRead', chatId: currentChatId });
+      updateChatPreview(targetChatId, p.text, p.from, false, timeStr);
     } else {
-      // Message is for ANOTHER chat
       const li = chatList.querySelector(`li[data-chat-id="${targetChatId}"]`);
       if (li) {
           const badge = li.querySelector('.unread-badge');
           let count = badge ? parseInt(badge.textContent) : 0;
           if (count === 99) count = 100; else if (count < 99) count++;
           setUnreadUI(targetChatId, count);
-          moveChatToTop(targetChatId); 
+          
+          // Update preview text and move to top
+          updateChatPreview(targetChatId, p.text, p.from, false, timeStr);
       }
 
-      // Show local notification if the tab is in the background
       if (document.hidden && Notification.permission === "granted") {
           const notification = new Notification(p.from, {
               body: p.text,
               icon: '/favicon.png'
           });
-          // Focus the window on click
           notification.onclick = () => {
               window.focus();
               notification.close();
-              // Optionally open the chat directly:
-              // navigate('chat', { chatId: targetChatId });
           };
       }
     }

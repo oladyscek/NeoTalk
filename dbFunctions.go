@@ -404,10 +404,11 @@ func getChats(sender string) ([]ChatFormat, bool) {
 		)) AS name,
 		c.is_group,
 		(SELECT COUNT(*) FROM messages m WHERE m.chat_id = c.id AND m.is_read = 0 AND m.sender_id != ?) AS unread_count,
-		COALESCE(
-		(SELECT MAX(created_at) FROM messages WHERE chat_id = c.id), 
-		c.created_at
-		) AS last_used
+		COALESCE((SELECT created_at FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), c.created_at) AS last_used,
+		COALESCE((SELECT msg FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), '') AS last_msg,
+		COALESCE((SELECT u.name FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.chat_id = c.id ORDER BY m.id DESC LIMIT 1), '')
+		AS last_msg_sender,
+		COALESCE((SELECT is_read FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), 1) AS last_msg_is_read
 		FROM chats c
 		JOIN chat_members cm ON cm.chat_id = c.id
 		WHERE cm.user_id = ?
@@ -425,7 +426,8 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	for data.Next() {
 		var c ChatFormat
 		var isGroupInt int
-		if err := data.Scan(&c.ID, &c.ChatName, &isGroupInt, &c.Unread, &c.LastUsed); err != nil {
+		if err := data.Scan(&c.ID, &c.ChatName, &isGroupInt, &c.Unread,
+			&c.LastUsed, &c.LastMsg, &c.LastMsgSender, &c.LastMsgIsRead); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
@@ -985,7 +987,7 @@ func delChat(name string, req *Packet) ([]string, bool, bool) {
 func addSystemMessage(chatID int, text string) (int64, bool) {
 	res, err := db.Exec(`--sql
 		INSERT INTO messages (chat_id, sender_id, msg) VALUES (?, 200, ?)`, chatID, text)
-	
+
 	if err != nil {
 		log.Println("addSystemMessage error:", err)
 		return -1, false
