@@ -121,6 +121,8 @@ func sendMsgWS(c *Client, req *Packet) {
 			return
 		}
 
+		defer rows.Close()
+
 		var names []string
 		for rows.Next() {
 			var name string
@@ -130,7 +132,6 @@ func sendMsgWS(c *Client, req *Packet) {
 			}
 			names = append(names, name)
 		}
-		rows.Close()
 
 		mu.Lock()
 		members := make([]*Client, 0, len(names))
@@ -422,4 +423,28 @@ func delChatWS(c *Client, req *Packet) {
 			}
 		}
 	}
+}
+
+func getGroupMembersWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "getGroupMembersStatus", Answer: "not logged in"})
+		return
+	}
+
+	members, ok := getGroupMembers(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "getGroupMembersStatus", Answer: "failed"})
+		return
+	}
+
+	data, err := json.Marshal(members)
+
+	if err != nil {
+		log.Println(err)
+		c.send(Packet{Type: "getGroupMembersStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "getGroupMembersStatus", Answer: "ok", Data: data})
 }

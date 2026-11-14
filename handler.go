@@ -34,7 +34,7 @@ func addUserConn(c *Client) {
 	mu.Unlock()
 
 	if old != nil && old != c {
-		msg := websocket.FormatCloseMessage(4000, "kicked")                             // 4000 - accouns is online frov another device
+		msg := websocket.FormatCloseMessage(4000, "kicked")                             // 4000 - accouns is online from another device
 		old.Conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(time.Second)) // give a second to packet to be deilvered to old session
 		old.Conn.Close()
 		log.Println("kicked old session for:", c.Name)
@@ -112,6 +112,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			chatReadWS(cl, &req)
 		case "savePushSub":
 			savePushSubWS(cl, &req)
+		case "getGroupMembers":
+			getGroupMembersWS(cl, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}

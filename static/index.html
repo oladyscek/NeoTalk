@@ -71,7 +71,6 @@
     #chats { height: 100vh; }
     .app { display: flex; height: 100vh; color: #E0D0FF; }
 
-    /* Increased sidebar width for desktop to fit new layout */
     .sidebar { width: 320px; background: #1A0B2E; border-right: 2px solid #2e0777; display: flex; flex-direction: column; }
     .sidebar-header { padding: 15px; font-size: 12px; border-bottom: 2px solid #2e0777; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
     .sidebar-header button { font-size: 14px; padding: 4px 10px; }
@@ -95,59 +94,15 @@
     }
 
     /* Chat Info Container */
-    .chat-info { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 6px; 
-      flex: 1; 
-      overflow: hidden; 
-    }
-
-    /* Top Row: Name + Time/Ticks */
-    .chat-top { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      gap: 8px;
-    }
-
-    .chat-name { 
-      flex: 1;
-      font-size: 10px; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-    }
-
-    .chat-meta { 
-      display: flex; 
-      align-items: center; 
-      gap: 4px; 
-      font-size: 8px; 
-      color: #8a2be2; 
-      flex-shrink: 0;
-    }
-
+    .chat-info { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow: hidden; }
+    .chat-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .chat-name { flex: 1; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-meta { display: flex; align-items: center; gap: 4px; font-size: 8px; color: #8a2be2; flex-shrink: 0; }
     .chat-meta .ticks { font-size: 8px; opacity: 0.6; }
     .chat-meta .ticks.read { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; opacity: 1; }
 
-    /* Bottom Row: Last Msg + Badge */
-    .chat-bottom { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      gap: 8px;
-    }
-
-    .chat-last-msg { 
-      flex: 1;
-      font-size: 8px; 
-      color: #8a2be2; 
-      opacity: 0.7; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-    }
+    .chat-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .chat-last-msg { flex: 1; font-size: 8px; color: #8a2be2; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .chat-list li.unread { background: rgba(46, 7, 119, 0.4); }
     .chat-list li.unread .chat-name { color: #00FFFF; text-shadow: 0 0 5px #00FFFF; }
@@ -160,7 +115,19 @@
     }
 
     .chat { flex: 1; display: flex; flex-direction: column; position: relative; }
+    
+    /* Hide header and input when no chat is selected */
+    .chat.empty-chat .chat-header,
+    .chat.empty-chat .send {
+      display: none;
+    }
+
     .chat-header { padding: 15px; border-bottom: 2px solid #2e0777; font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 8px #8a2be2; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Expanded clickable area */
+    .chat-header-info { display: flex; align-items: center; gap: 15px; cursor: pointer; flex: 1; }
+    .chat-header-info:hover { opacity: 0.8; }
+    #header-avatar { width: 28px; height: 28px; font-size: 10px; }
 
     .messages { flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .messages::before { content: ''; margin-top: auto; }
@@ -179,18 +146,9 @@
     .messages li.pending { opacity: 0.5; border-style: dashed; box-shadow: none; }
     
     .messages li.system-msg {
-      align-self: center;
-      background: none;
-      border: none;
-      box-shadow: none;
-      color: #8a2be2;
-      font-size: 8px;
-      text-transform: uppercase;
-      text-align: center;
-      max-width: 90%;
-      padding: 5px;
-      margin: 10px 0;
-      font-family: 'Press Start 2P', monospace;
+      align-self: center; background: none; border: none; box-shadow: none;
+      color: #8a2be2; font-size: 8px; text-transform: uppercase; text-align: center;
+      max-width: 90%; padding: 5px; margin: 10px 0; font-family: 'Press Start 2P', monospace;
     }
 
     .msg-text { word-wrap: break-word; }
@@ -214,22 +172,38 @@
 
     /* ================== MODALS & OVERLAYS ================== */
     #msg-actions-btn { display: none; font-size: 20px; padding: 5px 15px; }
-    #context-modal, #chat-context-modal { 
+    
+    #context-modal, #chat-context-modal, #profile-modal, #group-members-modal { 
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-      background: rgba(13, 2, 33, 0.85); z-index: 1000; justify-content: center; align-items: center; 
-      backdrop-filter: blur(3px); 
+      background: rgba(13, 2, 33, 0.75); z-index: 1000; justify-content: center; align-items: center; 
     }
+    
     .modal-content { 
       background: #1A0B2E; border: 2px solid #8a2be2; box-shadow: 0 0 20px #8a2be2, inset 0 0 10px #2e0777; 
       padding: 40px 30px 30px 30px; position: relative; display: flex; flex-direction: column; 
       align-items: center; gap: 20px; width: 350px; max-width: 90%; text-align: center; 
     }
+    
     .modal-content h2 { color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2; }
     .modal-content .action-btn { font-size: 20px; padding: 8px 0; width: 100%; }
-    .modal-close { position: absolute; top: 15px; right: 15px; font-size: 20px; padding: 5px 12px; }
+    
+    .modal-close { 
+      position: absolute; top: 10px; right: 10px; 
+      font-size: 16px; padding: 0; width: 30px; height: 30px; 
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5);
+      z-index: 10;
+    }
+    .modal-close:active { transform: translateY(2px); box-shadow: none; }
 
-    .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar { display: none; }
-    .chat-list, .messages { scrollbar-width: none; }
+    .profile-avatar { width: 100px; height: 100px; font-size: 40px; margin-bottom: 10px; }
+    
+    .members-list { list-style: none; padding: 0; margin: 0; width: 100%; max-height: 50vh; overflow-y: auto; text-align: left; }
+    .members-list li { padding: 10px; border-bottom: 1px solid #2e0777; font-size: 12px; display: flex; align-items: center; gap: 10px; color: #E0D0FF; }
+    .members-list li:last-child { border-bottom: none; }
+
+    .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar, .members-list::-webkit-scrollbar { display: none; }
+    .chat-list, .messages, .members-list { scrollbar-width: none; }
 
     /* ================== MOBILE ADAPTATION ================== */
     @media (max-width: 768px) {
@@ -351,10 +325,11 @@
         <ul class="chat-list"></ul>
       </aside>
 
-      <main class="chat">
+      <main class="chat empty-chat">
         <header class="chat-header">
-          <div style="display: flex; align-items: center; gap: 15px;">
+          <div class="chat-header-info" id="chat-header-info">
             <button id="mobile-back-btn" style="display: none; margin: 0;">←</button>
+            <div id="header-avatar" class="chat-avatar"></div>
             <span id="chat-title"></span>
           </div>
           <button id="msg-actions-btn">⋮</button>
@@ -373,6 +348,7 @@
     <div class="modal-content">
       <button class="modal-close" id="close-modal-btn">×</button>
       <h2>Message Actions</h2>
+      <button class="action-btn" id="modal-copy-btn">Copy</button>
       <button class="action-btn" id="modal-forward-btn">Forward</button>
       <button class="action-btn" id="modal-delete-btn">Delete</button>
     </div>
@@ -383,6 +359,22 @@
       <button class="modal-close" id="close-chat-modal-btn">×</button>
       <h2>Chat Actions</h2>
       <button class="action-btn" id="chat-modal-action-btn">Delete Chat</button>
+    </div>
+  </div>
+
+  <div id="profile-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-profile-modal-btn">×</button>
+      <div class="chat-avatar profile-avatar" id="profile-avatar"></div>
+      <h2 id="profile-name"></h2>
+    </div>
+  </div>
+
+  <div id="group-members-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-group-members-modal-btn">×</button>
+      <h2 id="group-members-title">Members</h2>
+      <ul class="members-list" id="group-members-list"></ul>
     </div>
   </div>
 
@@ -435,22 +427,20 @@
     if (state.view === 'chats') {
       currentChatId = null;
       chatTitle.textContent = '';
+      headerAvatar.textContent = '';
+      sendInput.value = '';
       messagesList.innerHTML = '';
       document.querySelectorAll('.chat-list li').forEach(x => x.classList.remove('active'));
+      document.querySelector('.chat').classList.add('empty-chat');
       clearSelection();
     }
 
     switch(state.view) {
-      case 'login':
-        loginScreen.style.display = 'flex';
-        break;
-      case 'reg':
-        regScreen.style.display = 'flex';
-        break;
-      case 'chats':
-        chatsScreen.style.display = 'block';
-        break;
+      case 'login': loginScreen.style.display = 'flex'; break;
+      case 'reg': regScreen.style.display = 'flex'; break;
+      case 'chats': chatsScreen.style.display = 'block'; break;
       case 'chat':
+        document.querySelector('.chat').classList.remove('empty-chat');
         chatsScreen.style.display = 'block';
         document.body.classList.add('show-mobile-chat');
         if (currentChatId !== state.chatId) {
@@ -460,7 +450,10 @@
             li.classList.add('active');
             currentChatId = state.chatId;
             const chat = chatsById[currentChatId];
-            chatTitle.textContent = chat ? chat.chatName : '?';
+            if (chat) {
+              chatTitle.textContent = chat.chatName;
+              headerAvatar.textContent = chat.chatName.charAt(0).toUpperCase();
+            }
             oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null;
             messagesList.innerHTML = ''; clearSelection();
             clearUnreadUI(currentChatId);
@@ -469,23 +462,11 @@
           }
         }
         break;
-      case 'settings':
-        settingsScreen.style.display = 'flex';
-        break;
-      case 'new-choice':
-        newChoiceScreen.style.display = 'flex';
-        break;
-      case 'new-chat':
-        newChatScreen.style.display = 'flex';
-        newChatInput.focus();
-        break;
-      case 'new-group':
-        newGroupScreen.style.display = 'flex';
-        newGroupName.focus();
-        break;
-      case 'coming-soon':
-        soonScreen.style.display = 'flex';
-        break;
+      case 'settings': settingsScreen.style.display = 'flex'; break;
+      case 'new-choice': newChoiceScreen.style.display = 'flex'; break;
+      case 'new-chat': newChatScreen.style.display = 'flex'; newChatInput.focus(); break;
+      case 'new-group': newGroupScreen.style.display = 'flex'; newGroupName.focus(); break;
+      case 'coming-soon': soonScreen.style.display = 'flex'; break;
     }
   }
 
@@ -550,9 +531,7 @@
               myName = p.name;
               document.documentElement.classList.remove('auth-pending');
               send({ type: 'getChats' });
-              if (!wasLoggedIn) {
-                  transitionToChats();
-              }
+              if (!wasLoggedIn) transitionToChats();
               flushOutbox();
           } else {
               localStorage.removeItem('token');
@@ -590,6 +569,13 @@
             isLoadingHistory = false;
           } else isLoadingHistory = false;
           break;
+        case 'getGroupMembersStatus':
+          if (p.answer === 'ok') {
+            renderGroupMembers(p.data);
+          } else {
+            alert('Failed to load members');
+          }
+          break;
         case 'incomedMsg':
           handleIncomingMsg(p);
           break;
@@ -607,8 +593,6 @@
               const lastMsg = myMsgs[myMsgs.length - 1];
               lastMsg.dataset.msgId = p.msgId;
               lastMsg.classList.remove('pending');
-              
-              // Optimistically update the sidebar preview
               updateChatPreview(p.chatId, lastMsg.dataset.originalText, myName, false, new Date().toISOString());
             }
           } else if (p.answer === 'failed') {
@@ -636,7 +620,6 @@
                 el.textContent = '✔✔';
             });
           }
-          // Update sidebar ticks if the last message in this chat is mine
           const chatLi = chatList.querySelector(`li[data-chat-id="${p.chatId}"]`);
           if (chatLi) {
             const ticks = chatLi.querySelector('.chat-meta .ticks');
@@ -647,11 +630,8 @@
           }
           break;
         case 'delChatStatus':
-          if (p.answer === 'ok') {
-            removeChatFromUI(p.chatId);
-          } else {
-            alert('Failed to delete chat');
-          }
+          if (p.answer === 'ok') removeChatFromUI(p.chatId);
+          else alert('Failed to delete chat');
           break;
         case 'delChat':
           removeChatFromUI(p.chatId);
@@ -744,6 +724,8 @@
   const sendForm     = document.querySelector('.send');
   const sendInput    = sendForm.querySelector('input');
   const chatTitle    = document.getElementById('chat-title');
+  const headerAvatar = document.getElementById('header-avatar');
+  const chatHeaderInfo = document.getElementById('chat-header-info');
   const mobileBackBtn = document.getElementById('mobile-back-btn');
 
   const newChatBtn      = document.getElementById('new-chat-btn');
@@ -764,12 +746,18 @@
   const msgActionsBtn = document.getElementById('msg-actions-btn');
   const contextModal  = document.getElementById('context-modal');
   const closeModalBtn = document.getElementById('close-modal-btn');
+  const modalCopyBtn = document.getElementById('modal-copy-btn');
   const modalDeleteBtn = document.getElementById('modal-delete-btn');
   const modalForwardBtn = document.getElementById('modal-forward-btn');
 
   const chatContextModal = document.getElementById('chat-context-modal');
   const closeChatModalBtn = document.getElementById('close-chat-modal-btn');
   const chatModalActionBtn = document.getElementById('chat-modal-action-btn');
+
+  const profileModal = document.getElementById('profile-modal');
+  const closeProfileModalBtn = document.getElementById('close-profile-modal-btn');
+  const groupMembersModal = document.getElementById('group-members-modal');
+  const closeGroupMembersModalBtn = document.getElementById('close-group-members-modal-btn');
 
   // ================== SCREEN NAVIGATION ==================
   function hideAllScreens() {
@@ -800,7 +788,33 @@
   cancelChatBtn.onclick = () => history.back();
   cancelGroupBtn.onclick = () => history.back();
 
-  mobileBackBtn.onclick = () => { closeActiveChat(); };
+  mobileBackBtn.onclick = (e) => { 
+    e.stopPropagation(); 
+    closeActiveChat(); 
+  };
+
+  chatHeaderInfo.onclick = () => {
+    if (!currentChatId) return;
+    const chat = chatsById[currentChatId];
+    if (!chat) return;
+
+    if (chat.isGroup) {
+      document.getElementById('group-members-title').textContent = chat.chatName;
+      groupMembersModal.style.display = 'flex';
+      send({ type: 'getGroupMembers', chatId: currentChatId });
+    } else {
+      document.getElementById('profile-name').textContent = chat.chatName;
+      document.getElementById('profile-avatar').textContent = chat.chatName.charAt(0).toUpperCase();
+      profileModal.style.display = 'flex';
+    }
+  };
+
+  closeProfileModalBtn.onclick = () => profileModal.style.display = 'none';
+  profileModal.onclick = (e) => { if (e.target === profileModal) profileModal.style.display = 'none'; };
+
+  closeGroupMembersModalBtn.onclick = () => groupMembersModal.style.display = 'none';
+  groupMembersModal.onclick = (e) => { if (e.target === groupMembersModal) groupMembersModal.style.display = 'none'; };
+
 
   // ================== AUTHENTICATION ACTIONS ==================
   loginBtn.onclick = () => {
@@ -875,6 +889,30 @@
     send({ type: 'createChat', isGroup: true, name: gName, data: groupMembers });
   };
 
+  // ================== PROFILE & MEMBERS RENDER ==================
+  function renderGroupMembers(members) {
+    const list = document.getElementById('group-members-list');
+    list.innerHTML = '';
+    if (!members || members.length === 0) {
+      list.innerHTML = '<li style="justify-content:center; border:none;">No members found.</li>';
+      return;
+    }
+    members.forEach(m => {
+      const li = document.createElement('li');
+      
+      const avatar = document.createElement('div');
+      avatar.className = 'chat-avatar';
+      avatar.textContent = m.charAt(0).toUpperCase();
+      
+      const name = document.createElement('span');
+      name.textContent = m;
+      
+      li.appendChild(avatar);
+      li.appendChild(name);
+      list.appendChild(li);
+    });
+  }
+
   // ================== CHAT LIST RENDERING & HELPERS ==================
   
   function moveChatToTop(chatId) {
@@ -922,7 +960,6 @@
     const bottomDiv = li.querySelector('.chat-bottom');
     const metaSpan = li.querySelector('.chat-meta');
     
-    // Update time and ticks
     if (metaSpan) {
       let ticksHTML = '';
       if (sender === myName) {
@@ -931,7 +968,6 @@
       metaSpan.innerHTML = `${ticksHTML}<span>${formatMsgTime(timeStr)}</span>`;
     }
 
-    // Update text preview
     const msgSpan = bottomDiv.querySelector('.chat-last-msg');
     if (msgSpan) {
       if (chat.isGroup && sender && sender !== 'SYSTEM' && sender !== myName) {
@@ -941,7 +977,6 @@
       }
     }
 
-    // Update internal state
     chat.lastMsg = text;
     chat.lastMsgSender = sender;
     chat.lastMsgIsRead = isRead;
@@ -967,7 +1002,6 @@
       li.dataset.chatId = c.id;
       li.dataset.chatName = c.chatName;
 
-      // Avatar
       const avatar = document.createElement('div');
       avatar.className = 'chat-avatar';
       avatar.textContent = c.chatName.charAt(0).toUpperCase();
@@ -976,7 +1010,6 @@
       const infoDiv = document.createElement('div');
       infoDiv.className = 'chat-info';
 
-      // Top Row
       const topDiv = document.createElement('div');
       topDiv.className = 'chat-top';
 
@@ -1002,7 +1035,6 @@
       topDiv.appendChild(metaSpan);
       infoDiv.appendChild(topDiv);
 
-      // Bottom Row
       const bottomDiv = document.createElement('div');
       bottomDiv.className = 'chat-bottom';
 
@@ -1281,7 +1313,6 @@
           if (count === 99) count = 100; else if (count < 99) count++;
           setUnreadUI(targetChatId, count);
           
-          // Update preview text and move to top
           updateChatPreview(targetChatId, p.text, p.from, false, timeStr);
       }
 
@@ -1353,7 +1384,32 @@
   msgActionsBtn.onclick = () => { if (selectedMsgIds.size > 0) contextModal.style.display = 'flex'; };
   closeModalBtn.onclick = () => contextModal.style.display = 'none';
   contextModal.onclick = (e) => { if (e.target === contextModal) contextModal.style.display = 'none'; };
-  modalForwardBtn.onclick = () => { alert('Message forwarding will be available in future updates!'); contextModal.style.display = 'none'; };
+  
+  modalForwardBtn.onclick = () => { 
+    alert('Message forwarding will be available in future updates!'); 
+    contextModal.style.display = 'none'; 
+  };
+
+  modalCopyBtn.onclick = () => {
+    let textToCopy = [];
+    const sortedIds = Array.from(selectedMsgIds).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    sortedIds.forEach(id => {
+      const el = document.querySelector(`li[data-msg-id="${id}"]`);
+      if (el && el.dataset.originalText) {
+        textToCopy.push(el.dataset.originalText);
+      }
+    });
+
+    if (textToCopy.length > 0) {
+      navigator.clipboard.writeText(textToCopy.join('\n\n')).catch(err => {
+        console.error('Copy failed', err);
+        alert('Failed to copy messages');
+      });
+    }
+    clearSelection(); 
+    contextModal.style.display = 'none';
+  };
 
   modalDeleteBtn.onclick = () => {
     selectedMsgIds.forEach(id => {
@@ -1372,6 +1428,10 @@
         contextModal.style.display = 'none';
       } else if (chatContextModal.style.display === 'flex') {
         chatContextModal.style.display = 'none';
+      } else if (profileModal.style.display === 'flex') {
+        profileModal.style.display = 'none';
+      } else if (groupMembersModal.style.display === 'flex') {
+        groupMembersModal.style.display = 'none';
       } else if (currentChatId) {
         closeActiveChat();
       } else if (history.state && history.state.view !== 'chats' && history.state.view !== 'login') {

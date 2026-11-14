@@ -1001,3 +1001,51 @@ func addSystemMessage(chatID int, text string) (int64, bool) {
 
 	return msgID, true
 }
+
+func getGroupMembers(name string, req *Packet) ([]string, bool) {
+	var ok int
+	err := db.QueryRow(`--sql
+		SELECT EXISTS
+		(SELECT 1 FROM chat_members c 
+		JOIN users u ON u.id = c.user_id
+		WHERE u.name = ? COLLATE NOCASE AND c.chat_id = ?)`, name, req.ChatID).Scan(&ok)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	if ok == 0 {
+		return nil, false
+	}
+
+	users, err := db.Query(`--sql
+		SELECT u.name FROM users u
+		JOIN chat_members cm ON
+		u.id = cm.user_id 
+		WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	defer users.Close()
+
+	var groupMem []string
+	for users.Next() {
+		var u string
+		if err := users.Scan(&u); err != nil {
+			log.Println("scan error:", err)
+			continue
+		}
+		groupMem = append(groupMem, u)
+	}
+
+	if err := users.Err(); err != nil {
+		log.Println("rows error:", err)
+		return nil, false
+	}
+
+	return groupMem, true
+}
