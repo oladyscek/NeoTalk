@@ -448,3 +448,35 @@ func getGroupMembersWS(c *Client, req *Packet) {
 
 	c.send(Packet{Type: "getGroupMembersStatus", Answer: "ok", Data: data})
 }
+
+func makeCustomNameWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "makeCustomNameStatus", Answer: "not logged in"})
+		return
+	}
+
+	ok := makeCustomName(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "makeCustomNameStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "makeCustomNameStatus", Answer: "ok"})
+}
+
+func delCustomNameWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "delCustomNameStatus", Answer: "not logged in"})
+		return
+	}
+
+	ok := delCustomName(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "delCustomNameStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "delCustomNameStatus", Answer: "ok"})
+}

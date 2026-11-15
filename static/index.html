@@ -173,7 +173,7 @@
     /* ================== MODALS & OVERLAYS ================== */
     #msg-actions-btn { display: none; font-size: 20px; padding: 5px 15px; }
     
-    #context-modal, #chat-context-modal, #profile-modal, #group-members-modal { 
+    #context-modal, #chat-context-modal, #profile-modal, #group-members-modal, #rename-modal, #error-modal { 
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
       background: rgba(13, 2, 33, 0.75); z-index: 1000; justify-content: center; align-items: center; 
     }
@@ -201,6 +201,13 @@
     .members-list { list-style: none; padding: 0; margin: 0; width: 100%; max-height: 50vh; overflow-y: auto; text-align: left; }
     .members-list li { padding: 10px; border-bottom: 1px solid #2e0777; font-size: 12px; display: flex; align-items: center; gap: 10px; color: #E0D0FF; }
     .members-list li:last-child { border-bottom: none; }
+
+    /* Input inside modal */
+    .modal-content input {
+      font-family: 'Press Start 2P', monospace; background-color: #0D0221; color: #E0D0FF;
+      border: 2px solid #2e0777; padding: 10px; width: 100%; text-align: center; font-size: 14px;
+    }
+    .modal-content input:focus { outline: none; border-color: #8a2be2; }
 
     .chat-list::-webkit-scrollbar, .messages::-webkit-scrollbar, .members-list::-webkit-scrollbar { display: none; }
     .chat-list, .messages, .members-list { scrollbar-width: none; }
@@ -367,6 +374,8 @@
       <button class="modal-close" id="close-profile-modal-btn">×</button>
       <div class="chat-avatar profile-avatar" id="profile-avatar"></div>
       <h2 id="profile-name"></h2>
+      <button class="action-btn" id="rename-profile-btn">Rename Contact</button>
+      <button class="action-btn" id="reset-profile-btn">Reset Name</button>
     </div>
   </div>
 
@@ -375,6 +384,28 @@
       <button class="modal-close" id="close-group-members-modal-btn">×</button>
       <h2 id="group-members-title">Members</h2>
       <ul class="members-list" id="group-members-list"></ul>
+      <button class="action-btn" id="rename-group-btn">Rename Group</button>
+      <button class="action-btn" id="reset-group-btn">Reset Name</button>
+    </div>
+  </div>
+
+  <!-- Modal for renaming -->
+  <div id="rename-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-rename-modal-btn">×</button>
+      <h2>New Name</h2>
+      <input type="text" id="rename-input" placeholder="Enter name..." maxlength="50">
+      <button class="action-btn" id="save-rename-btn">Save</button>
+    </div>
+  </div>
+
+  <!-- Modal for errors instead of alerts -->
+  <div id="error-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-error-modal-btn">×</button>
+      <h2>Error</h2>
+      <p id="error-text" style="font-size: 10px; color: #ff5555; margin: 0;"></p>
+      <button class="action-btn" id="ok-error-btn">OK</button>
     </div>
   </div>
 
@@ -398,6 +429,10 @@
   let isLoadingHistory = false;
 
   let outbox = [];
+
+  // Variables for storing pending rename
+  let pendingRenameId = null;
+  let pendingRenameName = null;
 
   // ================== HISTORY & NAVIGATION MANAGEMENT ==================
   function navigate(view, data = {}) {
@@ -496,8 +531,8 @@
     ws.onclose = (e) => {
       console.log('ws closed, code:', e.code);
       if (e.code === 4000) {
-          alert("Disconnected: Account opened in another tab/device. Click OK to refresh.");
-          location.reload(); 
+          showError("Disconnected: Account opened in another tab/device.");
+          setTimeout(() => location.reload(), 2000);
           return;
       }
 
@@ -547,7 +582,7 @@
             send({ type: 'getChats' });
             transitionToChats();
             flushOutbox();
-          } else alert('Login: ' + p.answer);
+          } else showError('Login: ' + p.answer);
           break;
         case 'regStatus':
           if (p.answer === 'ok') {
@@ -557,7 +592,7 @@
             send({ type: 'getChats' });
             transitionToChats();
             flushOutbox();
-          } else alert('Registration: ' + p.answer);
+          } else showError('Registration: ' + p.answer);
           break;
         case 'getChatStatus':
           if (p.answer === 'ok') renderChatList(p.data || []);
@@ -573,7 +608,59 @@
           if (p.answer === 'ok') {
             renderGroupMembers(p.data);
           } else {
-            alert('Failed to load members');
+            showError('Failed to load members');
+          }
+          break;
+        case 'makeCustomNameStatus':
+          if (p.answer === 'ok') {
+            if (pendingRenameId && pendingRenameName) {
+                // Update internal state
+                if (chatsById[pendingRenameId]) {
+                    chatsById[pendingRenameId].chatName = pendingRenameName;
+                }
+
+                // Update chat list UI
+                const chatLi = chatList.querySelector(`li[data-chat-id="${pendingRenameId}"]`);
+                if (chatLi) {
+                  chatLi.querySelector('.chat-name').textContent = pendingRenameName;
+                  chatLi.querySelector('.chat-avatar').textContent = pendingRenameName.charAt(0).toUpperCase();
+                }
+
+                // Update chat header if it's the currently open chat
+                if (pendingRenameId === currentChatId) {
+                  chatTitle.textContent = pendingRenameName;
+                  headerAvatar.textContent = pendingRenameName.charAt(0).toUpperCase();
+                  
+                  const profName = document.getElementById('profile-name');
+                  if (profName) profName.textContent = pendingRenameName;
+                  
+                  const profAva = document.getElementById('profile-avatar');
+                  if (profAva) profAva.textContent = pendingRenameName.charAt(0).toUpperCase();
+                  
+                  const grpTitle = document.getElementById('group-members-title');
+                  if (grpTitle) grpTitle.textContent = pendingRenameName;
+                }
+
+                // Clear pending variables
+                pendingRenameId = null;
+                pendingRenameName = null;
+            }
+            
+            renameModal.style.display = 'none';
+            profileModal.style.display = 'none';
+            groupMembersModal.style.display = 'none';
+          } else {
+            showError('Failed to rename');
+          }
+          break;
+        case 'delCustomNameStatus':
+          if (p.answer === 'ok') {
+            renameModal.style.display = 'none';
+            profileModal.style.display = 'none';
+            groupMembersModal.style.display = 'none';
+            send({ type: 'getChats' }); // This will refresh the list and header
+          } else {
+            showError('Failed to reset name');
           }
           break;
         case 'incomedMsg':
@@ -581,7 +668,7 @@
           break;
         case 'newChatStatus':
           if (p.answer === 'ok') { transitionToChats(); send({ type: 'getChats' }); } 
-          else alert('Create error: ' + p.answer);
+          else showError('Create error: ' + p.answer);
           break;
         case 'newChat':
           send({ type: 'getChats' });
@@ -608,7 +695,7 @@
           if (el) el.remove();
           break;
         case 'delMsgStatus':
-          if (p.answer === 'failed') alert('Failed to delete message.');
+          if (p.answer === 'failed') showError('Failed to delete message.');
           break;
         case 'chatReadStatus':
           if (p.answer === 'failed') console.log('Failed to mark chat as read on server');
@@ -620,9 +707,9 @@
                 el.textContent = '✔✔';
             });
           }
-          const chatLi = chatList.querySelector(`li[data-chat-id="${p.chatId}"]`);
-          if (chatLi) {
-            const ticks = chatLi.querySelector('.chat-meta .ticks');
+          const chatLi2 = chatList.querySelector(`li[data-chat-id="${p.chatId}"]`);
+          if (chatLi2) {
+            const ticks = chatLi2.querySelector('.chat-meta .ticks');
             if (ticks) {
               ticks.classList.add('read');
               ticks.textContent = '✔✔';
@@ -631,7 +718,7 @@
           break;
         case 'delChatStatus':
           if (p.answer === 'ok') removeChatFromUI(p.chatId);
-          else alert('Failed to delete chat');
+          else showError('Failed to delete chat');
           break;
         case 'delChat':
           removeChatFromUI(p.chatId);
@@ -759,6 +846,28 @@
   const groupMembersModal = document.getElementById('group-members-modal');
   const closeGroupMembersModalBtn = document.getElementById('close-group-members-modal-btn');
 
+  // Custom Rename & Error Modals
+  const renameModal = document.getElementById('rename-modal');
+  const renameInput = document.getElementById('rename-input');
+  const saveRenameBtn = document.getElementById('save-rename-btn');
+  const closeRenameModalBtn = document.getElementById('close-rename-modal-btn');
+
+  const errorModal = document.getElementById('error-modal');
+  const errorText = document.getElementById('error-text');
+  const okErrorBtn = document.getElementById('ok-error-btn');
+  const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
+
+  let renameTargetId = null;
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorModal.style.display = 'flex';
+  }
+
+  closeErrorModalBtn.onclick = () => errorModal.style.display = 'none';
+  okErrorBtn.onclick = () => errorModal.style.display = 'none';
+  errorModal.onclick = (e) => { if (e.target === errorModal) errorModal.style.display = 'none'; };
+
   // ================== SCREEN NAVIGATION ==================
   function hideAllScreens() {
     [loginScreen, regScreen, chatsScreen, settingsScreen, soonScreen, newChoiceScreen, newChatScreen, newGroupScreen].forEach(el => el.style.display = 'none');
@@ -815,11 +924,58 @@
   closeGroupMembersModalBtn.onclick = () => groupMembersModal.style.display = 'none';
   groupMembersModal.onclick = (e) => { if (e.target === groupMembersModal) groupMembersModal.style.display = 'none'; };
 
+  // === CUSTOM NAME ACTIONS ===
+
+  document.getElementById('rename-profile-btn').onclick = () => {
+    const currentName = document.getElementById('profile-name').textContent;
+    renameTargetId = currentChatId;
+    renameInput.value = currentName;
+    profileModal.style.display = 'none';
+    renameModal.style.display = 'flex';
+    renameInput.focus();
+  };
+
+  document.getElementById('reset-profile-btn').onclick = () => {
+    send({ type: 'delCustomName', chatId: currentChatId });
+  };
+
+  document.getElementById('rename-group-btn').onclick = () => {
+    const currentName = document.getElementById('group-members-title').textContent;
+    renameTargetId = currentChatId;
+    renameInput.value = currentName;
+    groupMembersModal.style.display = 'none';
+    renameModal.style.display = 'flex';
+    renameInput.focus();
+  };
+
+  document.getElementById('reset-group-btn').onclick = () => {
+    send({ type: 'delCustomName', chatId: currentChatId });
+  };
+
+  closeRenameModalBtn.onclick = () => renameModal.style.display = 'none';
+  renameModal.onclick = (e) => { if (e.target === renameModal) renameModal.style.display = 'none'; };
+
+  saveRenameBtn.onclick = () => {
+    const newName = renameInput.value.trim();
+    if (newName && renameTargetId) {
+      // Store the pending values!
+      pendingRenameId = renameTargetId;
+      pendingRenameName = newName;
+      
+      send({ type: 'makeCustomName', chatId: renameTargetId, name: newName });
+    } else {
+      renameModal.style.display = 'none';
+    }
+  };
+
+  renameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') saveRenameBtn.click();
+  });
 
   // ================== AUTHENTICATION ACTIONS ==================
   loginBtn.onclick = () => {
     const name = loginNameInput.value.trim();
-    if (!name) return alert('Enter name');
+    if (!name) return showError('Enter name');
     send({ type: 'login', name, password: loginPassInput.value });
   };
 
@@ -827,8 +983,8 @@
     const name  = regNameInput.value.trim();
     const pass  = regPassInput.value;
     const pass2 = regPass2Input.value;
-    if (!/^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$/.test(name)) return alert('Name must be 3-20 characters');
-    if (pass !== pass2) return alert('Passwords do not match');
+    if (!/^[a-zA-Z0-9_а-яА-ЯёЁ]{3,20}$/.test(name)) return showError('Name must be 3-20 characters');
+    if (pass !== pass2) return showError('Passwords do not match');
     send({ type: 'reg', name, password: pass });
   };
 
@@ -884,8 +1040,8 @@
   createGroupBtn.onclick = () => {
     addMemberFromInput(); 
     const gName = newGroupName.value.trim();
-    if (!gName) return alert('Enter group name');
-    if (groupMembers.length === 0) return alert('Add at least one member');
+    if (!gName) return showError('Enter group name');
+    if (groupMembers.length === 0) return showError('Add at least one member');
     send({ type: 'createChat', isGroup: true, name: gName, data: groupMembers });
   };
 
@@ -1062,6 +1218,13 @@
       if (c.unread > 0) li.classList.add('unread');
       if (c.id === currentChatId) li.classList.add('active');
     });
+
+    // Update header if the current chat was renamed (e.g. after reset)
+    if (currentChatId && chatsById[currentChatId]) {
+        const currentChat = chatsById[currentChatId];
+        chatTitle.textContent = currentChat.chatName;
+        headerAvatar.textContent = currentChat.chatName.charAt(0).toUpperCase();
+    }
   }
 
   chatList.onclick = (e) => {
@@ -1279,7 +1442,7 @@
   };
 
   function revertLastMessage(errorMsg) {
-    alert(errorMsg);
+    showError(errorMsg);
     const myMsgs = messagesList.querySelectorAll('.own.pending:not([data-msg-id])');
     if (myMsgs.length > 0) {
       const lastMsg = myMsgs[myMsgs.length - 1];
@@ -1386,7 +1549,7 @@
   contextModal.onclick = (e) => { if (e.target === contextModal) contextModal.style.display = 'none'; };
   
   modalForwardBtn.onclick = () => { 
-    alert('Message forwarding will be available in future updates!'); 
+    showError('Message forwarding will be available in future updates!'); 
     contextModal.style.display = 'none'; 
   };
 
@@ -1404,7 +1567,7 @@
     if (textToCopy.length > 0) {
       navigator.clipboard.writeText(textToCopy.join('\n\n')).catch(err => {
         console.error('Copy failed', err);
-        alert('Failed to copy messages');
+        showError('Failed to copy messages');
       });
     }
     clearSelection(); 
@@ -1432,6 +1595,10 @@
         profileModal.style.display = 'none';
       } else if (groupMembersModal.style.display === 'flex') {
         groupMembersModal.style.display = 'none';
+      } else if (renameModal.style.display === 'flex') {
+        renameModal.style.display = 'none';
+      } else if (errorModal.style.display === 'flex') {
+        errorModal.style.display = 'none';
       } else if (currentChatId) {
         closeActiveChat();
       } else if (history.state && history.state.view !== 'chats' && history.state.view !== 'login') {
@@ -1480,7 +1647,7 @@
 
   async function subscribeToPush() {
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return alert('No permission');
+      if (permission !== 'granted') return showError('No permission');
       
       const res = await fetch('/api/vapid_public');
       const publicKey = await res.text();
@@ -1492,7 +1659,7 @@
       });
       
       send({ type: 'savePushSub', data: sub });
-      alert('Notifications enabled');
+      showError('Notifications enabled');
   }
 
   </script>

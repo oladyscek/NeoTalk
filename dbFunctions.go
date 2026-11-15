@@ -395,24 +395,25 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	}
 
 	data, err := db.Query(`--sql
-		SELECT c.id,
-		COALESCE(c.chatname, (
-			SELECT u.name FROM users u
-			JOIN chat_members cm2 ON cm2.user_id = u.id
-			WHERE cm2.chat_id = c.id AND u.id != ?
-			LIMIT 1
-		)) AS name,
-		c.is_group,
-		(SELECT COUNT(*) FROM messages m WHERE m.chat_id = c.id AND m.is_read = 0 AND m.sender_id != ?) AS unread_count,
-		COALESCE((SELECT created_at FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), c.created_at) AS last_used,
-		COALESCE((SELECT msg FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), '') AS last_msg,
-		COALESCE((SELECT u.name FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.chat_id = c.id ORDER BY m.id DESC LIMIT 1), '')
-		AS last_msg_sender,
-		COALESCE((SELECT is_read FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), 1) AS last_msg_is_read
-		FROM chats c
-		JOIN chat_members cm ON cm.chat_id = c.id
-		WHERE cm.user_id = ?
-		ORDER BY last_used DESC`, userId, userId, userId)
+	SELECT c.id,
+	COALESCE(
+		(SELECT custom_name FROM custom_names WHERE user_id = ? AND chat_id = c.id),
+		c.chatname,
+		(SELECT u.name FROM users u
+		JOIN chat_members cm2 ON cm2.user_id = u.id
+		WHERE cm2.chat_id = c.id AND u.id != ?
+		LIMIT 1)
+	) AS name,
+	c.is_group,
+	(SELECT COUNT(*) FROM messages m WHERE m.chat_id = c.id AND m.is_read = 0 AND m.sender_id != ?) AS unread_count,
+	COALESCE((SELECT created_at FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), c.created_at) AS last_used,
+	COALESCE((SELECT msg FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), '') AS last_msg,
+	COALESCE((SELECT u.name FROM messages m JOIN users u ON u.id = m.sender_id WHERE m.chat_id = c.id ORDER BY m.id DESC LIMIT 1), '') AS last_msg_sender,
+	COALESCE((SELECT is_read FROM messages WHERE chat_id = c.id ORDER BY id DESC LIMIT 1), 1) AS last_msg_is_read
+	FROM chats c
+	JOIN chat_members cm ON cm.chat_id = c.id
+	WHERE cm.user_id = ?
+	ORDER BY last_used DESC`, userId, userId, userId, userId)
 
 	if err != nil {
 		log.Println(err)
@@ -1048,4 +1049,81 @@ func getGroupMembers(name string, req *Packet) ([]string, bool) {
 	}
 
 	return groupMem, true
+}
+
+func makeCustomName(name string, req *Packet) bool {
+	if req.Name == "" {
+		return false
+	}
+
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	if err != nil {
+		return false
+	}
+
+	var ok int
+
+	err = db.QueryRow(`--sql
+	SELECT EXISTS(SELECT 1 FROM chat_members
+	WHERE chat_id = ? AND user_id = ?)`, req.ChatID, userId).Scan(&ok)
+
+	if err != nil {
+		return false
+	}
+
+	if ok == 0 {
+		return false
+	}
+
+	_, err = db.Exec(`--sql
+	INSERT INTO custom_names (user_id, chat_id, custom_name) 
+	VALUES (?, ?, ?)
+	ON CONFLICT(user_id, chat_id) DO UPDATE SET 
+	custom_name = excluded.custom_name`,
+		userId, req.ChatID, req.Name)
+
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func delCustomName(name string, req *Packet) bool {
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	if err != nil {
+		return false
+	}
+
+	var ok int
+
+	err = db.QueryRow(`--sql
+	SELECT EXISTS(SELECT 1 FROM chat_members
+	WHERE chat_id = ? AND user_id = ?)`, req.ChatID, userId).Scan(&ok)
+
+	if err != nil {
+		return false
+	}
+
+	if ok == 0 {
+		return false
+	}
+
+	_, err = db.Exec(`--sql
+	DELETE FROM custom_names WHERE user_id = ? AND chat_id = ?`,
+		userId, req.ChatID)
+
+	if err != nil {
+		return false
+	}
+
+	return true
 }

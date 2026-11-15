@@ -114,6 +114,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			savePushSubWS(cl, &req)
 		case "getGroupMembers":
 			getGroupMembersWS(cl, &req)
+		case "makeCustomName":
+			makeCustomNameWS(cl, &req)
+		case "delCustomName":
+			delCustomNameWS(cl, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}
