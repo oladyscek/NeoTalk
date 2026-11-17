@@ -444,7 +444,7 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	return results, true
 }
 
-func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.ChatID = id of second user or group
+func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.ChatID = id of second user or groupgit 
 	var userId int
 
 	err := db.QueryRow(`--sql
