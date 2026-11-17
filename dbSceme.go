@@ -49,7 +49,8 @@ func createTables() {
 	}
 
 	// Create SYSTEM user for system messages (password is invalid bcrypt hash, so login is impossible)
-	_, err = db.Exec(`INSERT OR IGNORE INTO users (id, name, password) VALUES (200, 'SYSTEM', '!')`)
+	_, err = db.Exec(`--sql
+	INSERT OR IGNORE INTO users (id, name, password) VALUES (200, 'SYSTEM', '!')`)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +86,8 @@ func createTables() {
 		sender_id  INTEGER NOT NULL,
 		msg        TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		is_read    bool not null DEFAULT 0)
+		is_read    bool not null DEFAULT 0,
+		is_edited  bool not null DEFAULT 0)
 	`)
 
 	if err != nil {

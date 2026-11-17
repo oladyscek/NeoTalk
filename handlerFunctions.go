@@ -293,43 +293,38 @@ func delMsgWS(c *Client, req *Packet) {
 
 	group, isGroup, ok := delMsg(c.Name, req) // could be found in dbFunctions.go
 
+	if !ok {
+		c.send(Packet{Type: "delMsgStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "delMsgStatus", Answer: "ok"})
+
 	if !isGroup {
-		if ok {
-			c.send(Packet{Type: "delMsgStatus", Answer: "ok"})
+		mu.Lock()
+		r, exist := clients[group[0]] // for DM
+		mu.Unlock()
 
-			mu.Lock()
-			r, exist := clients[group[0]] // for DM
-			mu.Unlock()
-
-			if exist {
-				r.send(Packet{Type: "delMsg", MsgId: req.MsgId})
-			}
-		} else {
-			c.send(Packet{Type: "delMsgStatus", Answer: "failed"})
-			return
+		if exist {
+			r.send(Packet{Type: "delMsg", MsgId: req.MsgId})
 		}
+
 	} else {
-		if ok {
-			c.send(Packet{Type: "delMsgStatus", Answer: "ok"})
+		members := make([]*Client, 0, len(group))
 
-			members := make([]*Client, 0, len(group))
-
-			mu.Lock()
-			for _, u := range group {
-				user, exist := clients[u]
-				if exist {
-					members = append(members, user)
-				}
+		mu.Lock()
+		for _, u := range group {
+			user, exist := clients[u]
+			if exist {
+				members = append(members, user)
 			}
-			mu.Unlock()
-
-			for _, cl := range members {
-				cl.send(Packet{Type: "delMsg", MsgId: req.MsgId})
-			}
-		} else {
-			c.send(Packet{Type: "delMsgStatus", Answer: "failed"})
-			return
 		}
+		mu.Unlock()
+
+		for _, cl := range members {
+			cl.send(Packet{Type: "delMsg", MsgId: req.MsgId})
+		}
+
 	}
 
 }
@@ -479,4 +474,45 @@ func delCustomNameWS(c *Client, req *Packet) {
 	}
 
 	c.send(Packet{Type: "delCustomNameStatus", Answer: "ok"})
+}
+
+func editMsgWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "editMsgStatus", Answer: "not logged in"})
+		return
+	}
+
+	group, isGroup, ok := editMsg(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "editMsgStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "editMsgStatus", Answer: "ok"})
+
+	if !isGroup {
+		mu.Lock()
+		r, exist := clients[group[0]] // for DM
+		mu.Unlock()
+
+		if exist {
+			r.send(Packet{Type: "editMsg", MsgId: req.MsgId, Text: req.Text})
+		}
+	} else {
+		members := make([]*Client, 0, len(group))
+
+		mu.Lock()
+		for _, u := range group {
+			user, exist := clients[u]
+			if exist {
+				members = append(members, user)
+			}
+		}
+		mu.Unlock()
+
+		for _, cl := range members {
+			cl.send(Packet{Type: "editMsg", MsgId: req.MsgId, Text: req.Text})
+		}
+	}
 }

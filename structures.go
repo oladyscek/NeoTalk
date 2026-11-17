@@ -10,11 +10,12 @@ import (
 )
 
 type HistoryFormat struct {
-	Id      int    `json:"id"`
-	Message string `json:"message"`
-	Time    string `json:"time"`
-	Sender  string `json:"sender"`
-	IsRead  bool   `json:"isRead"`
+	Id       int    `json:"id"`
+	Message  string `json:"message"`
+	Time     string `json:"time"`
+	Sender   string `json:"sender"`
+	IsRead   bool   `json:"isRead"`
+	IsEdited bool   `json:"isEdited"`
 }
 
 type ChatFormat struct {

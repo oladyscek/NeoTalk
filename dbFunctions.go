@@ -60,16 +60,17 @@ func reg(name string, password string) bool {
 
 	if isExist == 1 {
 		return false
-	} else {
-		hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-		_, err = db.Exec(`--sql
-		insert into users (name, password) values (?,?)`, name, string(hash))
-		if err != nil {
-			log.Println("ERROR CANNOT REG:", err)
-			return false
-		}
-		return true
 	}
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	_, err = db.Exec(`--sql
+		insert into users (name, password) values (?,?)`, name, string(hash))
+	if err != nil {
+		log.Println("ERROR CANNOT REG:", err)
+		return false
+	}
+	return true
+
 }
 
 func login(name string, password string) bool {
@@ -113,79 +114,79 @@ func createChat(req *Packet, creator string) (bool, int) {
 			return false, -1
 		}
 
-		if isExist == 1 {
-			var userId int
+		if isExist == 0 { // if second user do not exist
+			return false, -1
+		}
 
-			err = db.QueryRow(`--sql
+		var userId int
+
+		err = db.QueryRow(`--sql
 				SELECT id from users where name = ? COLLATE NOCASE`, req.To).Scan(&userId) // searching id of second user
 
-			if err != nil {
-				log.Println(err)
-				return false, -1
-			}
+		if err != nil {
+			log.Println(err)
+			return false, -1
+		}
 
-			var creatorId int
+		var creatorId int
 
-			err = db.QueryRow(`--sql
+		err = db.QueryRow(`--sql
 				SELECT id from users where name = ? COLLATE NOCASE`, creator).Scan(&creatorId) // searching id of creator
 
-			if err != nil {
-				log.Println(err)
-				return false, -1
-			}
+		if err != nil {
+			log.Println(err)
+			return false, -1
+		}
 
-			var existingChatID int
+		var existingChatID int
 
-			err = db.QueryRow(`--sql
+		err = db.QueryRow(`--sql
 				SELECT c.id FROM chats c
 				JOIN chat_members cm1 ON cm1.chat_id = c.id AND cm1.user_id = ?
 				JOIN chat_members cm2 ON cm2.chat_id = c.id AND cm2.user_id = ?
 				WHERE c.is_group = 0
 				LIMIT 1`, creatorId, userId).Scan(&existingChatID) // checking existance of chat between 2 users
 
-			if err == nil {
-				return true, existingChatID // if exist just show to user existing chat
-			}
+		if err == nil {
+			return true, existingChatID // if exist just show to user existing chat
+		}
 
-			if err != sql.ErrNoRows { // if real error
-				log.Println("check chat error:", err)
-				return false, -1
-			}
+		if err != sql.ErrNoRows { // if real error
+			log.Println("check chat error:", err)
+			return false, -1
+		}
 
-			res, err := db.Exec(`--sql
+		res, err := db.Exec(`--sql
 				INSERT INTO chats DEFAULT VALUES`) // creating new chat
 
-			if err != nil {
-				log.Println(err)
-				return false, -1
-			}
+		if err != nil {
+			log.Println(err)
+			return false, -1
+		}
 
-			id, err := res.LastInsertId() // id of new chat
+		id, err := res.LastInsertId() // id of new chat
 
-			if err != nil {
-				log.Println(err)
-				return false, -1
-			}
+		if err != nil {
+			log.Println(err)
+			return false, -1
+		}
 
-			_, err = db.Exec(`--sql
+		_, err = db.Exec(`--sql
 				insert into chat_members (chat_id, user_id) values(?,?)`, id, userId) // adding second user to the chat members
 
-			if err != nil {
-				log.Println(err)
-				return false, -1
-			}
+		if err != nil {
+			log.Println(err)
+			return false, -1
+		}
 
-			_, err = db.Exec(`--sql
+		_, err = db.Exec(`--sql
 				insert into chat_members (chat_id, user_id) values(?,?)`, id, creatorId) // adding creator to the chat members
 
-			if err != nil {
-				log.Println(err)
-				return false, -1
-			}
-			return true, int(id) // if chat created sucsesfully
-		} else {
-			return false, -1 // if second user is not exist
+		if err != nil {
+			log.Println(err)
+			return false, -1
 		}
+		return true, int(id) // if chat created sucsesfully
 	} else { // if group
 		var users []string // group members ecxept creator
 		err := json.Unmarshal(req.Data, &users)
@@ -227,27 +228,26 @@ func createChat(req *Packet, creator string) (bool, int) {
 				return false, -1
 			}
 
-			if exist == 1 {
-
-				var userId int
-
-				err = db.QueryRow(`--sql
-					SELECT id from users where name = ? COLLATE NOCASE`, user).Scan(&userId) // getting id of user to add him to group
-
-				if err != nil {
-					log.Println(err)
-					return false, -1
-				}
-
-				_, err = db.Exec(`--sql
-					insert into chat_members (chat_id, user_id) values(?,?)`, id, userId) // adding user to the group
-
-				if err != nil {
-					log.Println(err)
-					return false, -1
-				}
-			} else {
+			if exist == 0 {
 				continue // if user is not exist just skip him
+			}
+
+			var userId int
+
+			err = db.QueryRow(`--sql
+				SELECT id from users where name = ? COLLATE NOCASE`, user).Scan(&userId) // getting id of user to add him to group
+
+			if err != nil {
+				log.Println(err)
+				return false, -1
+			}
+
+			_, err = db.Exec(`--sql
+				insert into chat_members (chat_id, user_id) values(?,?)`, id, userId) // adding user to the group
+
+			if err != nil {
+				log.Println(err)
+				return false, -1
 			}
 		}
 		var creatorId int
@@ -289,57 +289,58 @@ func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 			return -1, -1, false
 		}
 
-		if isExist == 1 {
-			var userId int
+		if isExist == 0 {
+			return -1, -1, false
+		}
 
-			err = db.QueryRow(`--sql
+		var userId int
+
+		err = db.QueryRow(`--sql
 				SELECT id from users where name = ? COLLATE NOCASE`, req.To).Scan(&userId) // searching id of second user
 
-			if err != nil {
-				log.Println(err)
-				return -1, -1, false
-			}
+		if err != nil {
+			log.Println(err)
+			return -1, -1, false
+		}
 
-			var senderId int
+		var senderId int
 
-			err = db.QueryRow(`--sql
+		err = db.QueryRow(`--sql
 				SELECT id from users where name = ? COLLATE NOCASE`, sender).Scan(&senderId) // searching id of sender
 
-			if err != nil {
-				log.Println(err)
-				return -1, -1, false
-			}
+		if err != nil {
+			log.Println(err)
+			return -1, -1, false
+		}
 
-			var existingChatID int
+		var existingChatID int
 
-			err = db.QueryRow(`--sql
+		err = db.QueryRow(`--sql
 				SELECT c.id FROM chats c
 				JOIN chat_members cm1 ON cm1.chat_id = c.id AND cm1.user_id = ?
 				JOIN chat_members cm2 ON cm2.chat_id = c.id AND cm2.user_id = ?
 				WHERE c.is_group = 0
 				LIMIT 1`, senderId, userId).Scan(&existingChatID) // checking existance of chat between 2 users
 
-			if err == nil {
-				res, err := db.Exec(`--sql
+		if err == nil {
+			res, err := db.Exec(`--sql
 			insert into messages (chat_id, sender_id, msg) values (?,?,?)`, existingChatID, senderId, req.Text)
 
-				if err != nil {
-					log.Println(err)
-					return -1, -1, false
-				}
-				msgID, err = res.LastInsertId()
-				if err != nil {
-					log.Println("cannot get last insert id:", err)
-					return -1, -1, false
-				}
-			} else {
+			if err != nil {
 				log.Println(err)
 				return -1, -1, false
 			}
-			return int64(existingChatID), msgID, true
-		} else { // if second user not exists
+			msgID, err = res.LastInsertId()
+			if err != nil {
+				log.Println("cannot get last insert id:", err)
+				return -1, -1, false
+			}
+		} else {
+			log.Println(err)
 			return -1, -1, false
 		}
+		return int64(existingChatID), msgID, true
+
 	} else { // if group
 		var senderId int
 
@@ -361,25 +362,24 @@ func sendMsg(req *Packet, sender string) (int64, int64, bool) {
 			return -1, -1, false
 		}
 
-		if isExist == 1 {
-			res, err := db.Exec(`--sql
-			insert into messages (chat_id, sender_id, msg) values (?,?,?)`, req.ChatID, senderId, req.Text)
-
-			if err != nil {
-				log.Println(err)
-				return -1, -1, false
-			}
-
-			msgID, err = res.LastInsertId()
-			if err != nil {
-				log.Println("cannot get last insert id:", err)
-				return -1, -1, false
-			}
-
-			return int64(req.ChatID), msgID, true
-		} else {
+		if isExist == 0 {
 			return -1, -1, false
 		}
+
+		res, err := db.Exec(`--sql
+			insert into messages (chat_id, sender_id, msg) values (?,?,?)`, req.ChatID, senderId, req.Text)
+
+		if err != nil {
+			log.Println(err)
+			return -1, -1, false
+		}
+
+		msgID, err = res.LastInsertId()
+		if err != nil {
+			log.Println("cannot get last insert id:", err)
+			return -1, -1, false
+		}
+		return int64(req.ChatID), msgID, true
 	}
 }
 
@@ -474,7 +474,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	if req.BeforeID == 0 {
 		data, err = db.Query(`--sql
-		SELECT m.id, m.msg, m.created_at, u.name, m.is_read from messages m 
+		SELECT m.id, m.msg, m.created_at, u.name, m.is_read, m.is_edited from messages m 
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ?
 		ORDER BY m.id DESC
@@ -486,7 +486,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		}
 	} else {
 		data, err = db.Query(`--sql
-		SELECT m.id, m.msg, m.created_at, u.name, m.is_read from messages m 
+		SELECT m.id, m.msg, m.created_at, u.name, m.is_read, m.is_edited from messages m 
 		JOIN users u ON u.id = m.sender_id  
 		where m.chat_id = ? and m.id < ?
 		ORDER BY m.id DESC
@@ -503,7 +503,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	for data.Next() {
 		var c HistoryFormat
-		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender, &c.IsRead); err != nil {
+		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender, &c.IsRead, &c.IsEdited); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
@@ -602,27 +602,76 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 		return nil, false, false
 	}
 
-	if ok == 1 {
-		var isGroup bool
-		var isAdmin bool
-		err = db.QueryRow(`--sql
+	if ok == 0 {
+		return nil, false, false
+	}
+
+	var isGroup bool
+	var isAdmin bool
+	err = db.QueryRow(`--sql
 		SELECT c.is_group, cm.is_admin 
 		from chats c JOIN chat_members cm ON
 		c.id = cm.chat_id
 		WHERE c.id = ? AND cm.user_id = 
 		(SELECT id FROM users WHERE name = ? COLLATE NOCASE)`, req.ChatID, name).Scan(&isGroup, &isAdmin)
 
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	if isGroup && isAdmin {
+		users, err := db.Query(`--sql
+			SELECT u.name FROM users u
+			JOIN chat_members cm ON
+			u.id = cm.user_id 
+			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+
 		if err != nil {
 			log.Println(err)
 			return nil, false, false
 		}
 
-		if isGroup && isAdmin {
+		defer users.Close()
+
+		var groupMem []string
+		for users.Next() {
+			var u string
+			if err := users.Scan(&u); err != nil {
+				log.Println("scan error:", err)
+				continue
+			}
+			groupMem = append(groupMem, u)
+		}
+
+		res, err := db.Exec(`--sql
+			DELETE from messages where id = ? AND chat_id = ?`, req.MsgId, req.ChatID)
+
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
+		}
+
+		rows, err := res.RowsAffected()
+		if err != nil {
+			log.Println("rows affected error:", err)
+			return nil, false, false
+		}
+
+		if rows == 0 {
+			log.Println("no rows deleted, possibly wrong ID or permissions")
+			return nil, false, false
+		}
+
+		return groupMem, true, true
+
+	} else {
+		if isGroup {
 			users, err := db.Query(`--sql
-			SELECT u.name FROM users u
-			JOIN chat_members cm ON
-			u.id = cm.user_id 
-			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+				SELECT u.name FROM users u
+				JOIN chat_members cm ON
+				u.id = cm.user_id 
+				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
 
 			if err != nil {
 				log.Println(err)
@@ -642,7 +691,43 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 			}
 
 			res, err := db.Exec(`--sql
-			DELETE from messages where id = ? AND chat_id = ?`, req.MsgId, req.ChatID)
+				DELETE FROM messages 
+				WHERE id = ? AND sender_id =
+				(SELECT id FROM users WHERE name = ? COLLATE NOCASE)`, req.MsgId, name)
+
+			if err != nil {
+				log.Println(err)
+				var a []string
+				return a, false, false
+			}
+
+			rows, err := res.RowsAffected()
+			if err != nil {
+				log.Println("rows affected error:", err)
+				return nil, false, false
+			}
+
+			if rows == 0 {
+				log.Println("no rows deleted, possibly wrong ID or permissions")
+				return nil, false, false
+			}
+
+			return groupMem, true, true
+		} else {
+			var user string
+
+			err = db.QueryRow(`--sql
+				SELECT u.name from users u 
+				JOIN chat_members cm ON u.id = cm.user_id
+				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name).Scan(&user)
+
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
+			}
+
+			res, err := db.Exec(`--sql
+				DELETE from messages where id = ? AND chat_id = ?`, req.MsgId, req.ChatID)
 
 			if err != nil {
 				log.Println(err)
@@ -660,97 +745,11 @@ func delMsg(name string, req *Packet) ([]string, bool, bool) {
 				return nil, false, false
 			}
 
-			return groupMem, true, true
+			oneUser := make([]string, 0, 1)
+			oneUser = append(oneUser, user)
 
-		} else {
-			if isGroup {
-				users, err := db.Query(`--sql
-				SELECT u.name FROM users u
-				JOIN chat_members cm ON
-				u.id = cm.user_id 
-				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
-
-				if err != nil {
-					log.Println(err)
-					return nil, false, false
-				}
-
-				defer users.Close()
-
-				var groupMem []string
-				for users.Next() {
-					var u string
-					if err := users.Scan(&u); err != nil {
-						log.Println("scan error:", err)
-						continue
-					}
-					groupMem = append(groupMem, u)
-				}
-
-				res, err := db.Exec(`--sql
-				DELETE FROM messages 
-				WHERE id = ? AND sender_id =
-				(SELECT id FROM users WHERE name = ? COLLATE NOCASE)`, req.MsgId, name)
-
-				if err != nil {
-					log.Println(err)
-					var a []string
-					return a, false, false
-				}
-
-				rows, err := res.RowsAffected()
-				if err != nil {
-					log.Println("rows affected error:", err)
-					return nil, false, false
-				}
-
-				if rows == 0 {
-					log.Println("no rows deleted, possibly wrong ID or permissions")
-					return nil, false, false
-				}
-
-				return groupMem, true, true
-			} else {
-				var user string
-
-				err = db.QueryRow(`--sql
-				SELECT u.name from users u 
-				JOIN chat_members cm ON u.id = cm.user_id
-				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name).Scan(&user)
-
-				if err != nil {
-					log.Println(err)
-					return nil, false, false
-				}
-
-				res, err := db.Exec(`--sql
-				DELETE from messages where id = ? AND chat_id = ?`, req.MsgId, req.ChatID)
-
-				if err != nil {
-					log.Println(err)
-					return nil, false, false
-				}
-
-				rows, err := res.RowsAffected()
-				if err != nil {
-					log.Println("rows affected error:", err)
-					return nil, false, false
-				}
-
-				if rows == 0 {
-					log.Println("no rows deleted, possibly wrong ID or permissions")
-					return nil, false, false
-				}
-
-				oneUser := make([]string, 0, 1)
-				oneUser = append(oneUser, user)
-
-				return oneUser, false, true
-
-			}
+			return oneUser, false, true
 		}
-	} else {
-		return nil, false, false
 	}
 }
 
@@ -767,46 +766,47 @@ func chatRead(name string, req *Packet) ([]string, bool) {
 		return nil, false
 	}
 
-	if ok == 1 {
-		_, err = db.Exec(`--sql
+	if ok == 0 {
+		return nil, false
+	}
+
+	_, err = db.Exec(`--sql
 			UPDATE messages 
 			SET is_read = 1 
 			WHERE chat_id = ? 
 			AND is_read = 0 
 			AND sender_id != (SELECT id FROM users WHERE name = ? COLLATE NOCASE)`,
-			req.ChatID, name)
+		req.ChatID, name)
 
-		if err != nil {
-			log.Println(err)
-			return nil, false
-		}
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
 
-		users, err := db.Query(`--sql
+	users, err := db.Query(`--sql
 			SELECT u.name FROM users u
 			JOIN chat_members cm ON
 			u.id = cm.user_id 
 			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
 
-		if err != nil {
-			log.Println(err)
-			return nil, false
-		}
-
-		defer users.Close()
-
-		var groupMem []string
-		for users.Next() {
-			var u string
-			if err := users.Scan(&u); err != nil {
-				log.Println("scan error:", err)
-				continue
-			}
-			groupMem = append(groupMem, u)
-		}
-		return groupMem, true
-	} else {
+	if err != nil {
+		log.Println(err)
 		return nil, false
 	}
+
+	defer users.Close()
+
+	var groupMem []string
+	for users.Next() {
+		var u string
+		if err := users.Scan(&u); err != nil {
+			log.Println("scan error:", err)
+			continue
+		}
+		groupMem = append(groupMem, u)
+	}
+	return groupMem, true
+
 }
 
 func savePushSub(name string, subJSON string) bool {
@@ -847,142 +847,143 @@ func delChat(name string, req *Packet) ([]string, bool, bool) {
 		return nil, false, false
 	}
 
-	if ok == 1 {
-		var isGroup bool
+	if ok == 0 {
+		log.Println("user not in chat:", req.ChatID)
+		return nil, false, false
+	}
 
-		err = db.QueryRow(`--sql
+	var isGroup bool
+
+	err = db.QueryRow(`--sql
 		SELECT is_group from chats WHERE id = ?`, req.ChatID).Scan(&isGroup)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	if isGroup {
+		users, err := db.Query(`--sql
+			SELECT u.name FROM users u
+			JOIN chat_members cm ON
+			u.id = cm.user_id 
+			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
 
 		if err != nil {
 			log.Println(err)
 			return nil, false, false
 		}
 
-		if isGroup {
-			users, err := db.Query(`--sql
-			SELECT u.name FROM users u
-			JOIN chat_members cm ON
-			u.id = cm.user_id 
-			WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+		defer users.Close()
 
-			if err != nil {
-				log.Println(err)
-				return nil, false, false
+		var groupMem []string
+		for users.Next() {
+			var u string
+			if err := users.Scan(&u); err != nil {
+				log.Println("scan error:", err)
+				continue
 			}
+			groupMem = append(groupMem, u)
+		}
 
-			defer users.Close()
-
-			var groupMem []string
-			for users.Next() {
-				var u string
-				if err := users.Scan(&u); err != nil {
-					log.Println("scan error:", err)
-					continue
-				}
-				groupMem = append(groupMem, u)
-			}
-
-			res, err := db.Exec(`--sql
+		res, err := db.Exec(`--sql
 			delete from chat_members where chat_id = ? and user_id =
 			(SELECT id from users where name = ? COLLATE NOCASE)`, req.ChatID, name)
 
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
+		}
+
+		rows, err := res.RowsAffected()
+		if err != nil {
+			log.Println("rows affected error:", err)
+			return nil, false, false
+		}
+
+		if rows == 0 {
+			log.Println("no rows deleted, possibly wrong ID or permissions")
+			return nil, false, false
+		}
+
+		var exist int
+
+		err = db.QueryRow(`--sql
+			SELECT EXISTS(SELECT 1 from chat_members WHERE chat_id = ?)`, req.ChatID).Scan(&exist)
+
+		if exist != 1 {
+			_, err = db.Exec(`--sql
+				delete from messages where chat_id = ?`, req.ChatID)
+
 			if err != nil {
 				log.Println(err)
 				return nil, false, false
 			}
 
-			rows, err := res.RowsAffected()
-			if err != nil {
-				log.Println("rows affected error:", err)
-				return nil, false, false
-			}
-
-			if rows == 0 {
-				log.Println("no rows deleted, possibly wrong ID or permissions")
-				return nil, false, false
-			}
-
-			var exist int
-
-			err = db.QueryRow(`--sql
-			SELECT EXISTS(SELECT 1 from chat_members WHERE chat_id = ?)`, req.ChatID).Scan(&exist)
-
-			if exist != 1 {
-				_, err = db.Exec(`--sql
-				delete from messages where chat_id = ?`, req.ChatID)
-
-				if err != nil {
-					log.Println(err)
-					return nil, false, false
-				}
-
-				_, err = db.Exec(`--sql
+			_, err = db.Exec(`--sql
 				delete from chats where id = ?`, req.ChatID)
 
-				if err != nil {
-					log.Println(err)
-					return nil, false, false
-				}
+			if err != nil {
+				log.Println(err)
+				return nil, false, false
 			}
+		}
 
-			return groupMem, true, true
-		} else {
-			var user string
+		return groupMem, true, true
+	} else {
+		var user string
 
-			err = db.QueryRow(`--sql
+		err = db.QueryRow(`--sql
 				SELECT u.name from users u 
 				JOIN chat_members cm ON u.id = cm.user_id
 				WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name).Scan(&user)
 
-			if err != nil {
-				log.Println(err)
-				return nil, false, false
-			}
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
+		}
 
-			res, err := db.Exec(`--sql
+		res, err := db.Exec(`--sql
 				DELETE FROM chat_members WHERE chat_id = ?`, req.ChatID)
 
-			if err != nil {
-				log.Println(err)
-				return nil, false, false
-			}
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
+		}
 
-			rows, err := res.RowsAffected()
-			if err != nil {
-				log.Println("rows affected error:", err)
-				return nil, false, false
-			}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			log.Println("rows affected error:", err)
+			return nil, false, false
+		}
 
-			if rows == 0 {
-				log.Println("no rows deleted, possibly wrong ID or permissions")
-				return nil, false, false
-			}
+		if rows == 0 {
+			log.Println("no rows deleted, possibly wrong ID or permissions")
+			return nil, false, false
+		}
 
-			_, err = db.Exec(`--sql
+		_, err = db.Exec(`--sql
 				delete from messages where chat_id = ?`, req.ChatID)
 
-			if err != nil {
-				log.Println(err)
-				return nil, false, false
-			}
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
+		}
 
-			_, err = db.Exec(`--sql
+		_, err = db.Exec(`--sql
 				delete from chats where id = ?`, req.ChatID)
 
-			if err != nil {
-				log.Println(err)
-				return nil, false, false
-			}
-
-			oneUser := make([]string, 0, 1)
-			oneUser = append(oneUser, user)
-
-			return oneUser, false, true
+		if err != nil {
+			log.Println(err)
+			return nil, false, false
 		}
-	} else {
-		log.Println("user not in chat:", req.ChatID)
-		return nil, false, false
+
+		oneUser := make([]string, 0, 1)
+		oneUser = append(oneUser, user)
+
+		return oneUser, false, true
 	}
+
 }
 
 func addSystemMessage(chatID int, text string) (int64, bool) {
@@ -1024,7 +1025,7 @@ func getGroupMembers(name string, req *Packet) ([]string, bool) {
 		SELECT u.name FROM users u
 		JOIN chat_members cm ON
 		u.id = cm.user_id 
-		WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+		WHERE cm.chat_id = ?`, req.ChatID)
 
 	if err != nil {
 		log.Println(err)
@@ -1062,6 +1063,7 @@ func makeCustomName(name string, req *Packet) bool {
 	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
 
 	if err != nil {
+		log.Println(err)
 		return false
 	}
 
@@ -1072,6 +1074,7 @@ func makeCustomName(name string, req *Packet) bool {
 	WHERE chat_id = ? AND user_id = ?)`, req.ChatID, userId).Scan(&ok)
 
 	if err != nil {
+		log.Println(err)
 		return false
 	}
 
@@ -1087,6 +1090,7 @@ func makeCustomName(name string, req *Packet) bool {
 		userId, req.ChatID, req.Name)
 
 	if err != nil {
+		log.Println(err)
 		return false
 	}
 
@@ -1100,6 +1104,7 @@ func delCustomName(name string, req *Packet) bool {
 	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
 
 	if err != nil {
+		log.Println(err)
 		return false
 	}
 
@@ -1110,6 +1115,7 @@ func delCustomName(name string, req *Packet) bool {
 	WHERE chat_id = ? AND user_id = ?)`, req.ChatID, userId).Scan(&ok)
 
 	if err != nil {
+		log.Println(err)
 		return false
 	}
 
@@ -1122,8 +1128,101 @@ func delCustomName(name string, req *Packet) bool {
 		userId, req.ChatID)
 
 	if err != nil {
+		log.Println(err)
 		return false
 	}
 
 	return true
+}
+
+func editMsg(name string, req *Packet) ([]string, bool, bool) {
+	if req.Text == "" {
+		return nil, false, false
+	}
+
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	var ok int
+
+	err = db.QueryRow(`--sql
+	SELECT EXISTS(
+    SELECT 1 FROM messages m 
+    JOIN chat_members cm ON m.chat_id = cm.chat_id AND m.sender_id = cm.user_id
+    WHERE m.id = ? AND m.sender_id = ? AND m.chat_id = ?
+		)`, req.MsgId, userId, req.ChatID).Scan(&ok)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	if ok == 0 {
+		return nil, false, false
+	}
+
+	res, err := db.Exec(`--sql
+    UPDATE messages 
+    SET msg = ?, is_edited = 1 
+    WHERE id = ? AND sender_id = ?`, req.Text, req.MsgId, userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil || rows == 0 {
+		return nil, false, false
+	}
+
+	var isGroupInt int
+
+	err = db.QueryRow(`--sql
+	SELECT is_group FROM chats WHERE id = ?`, req.ChatID).Scan(&isGroupInt)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	users, err := db.Query(`--sql
+		SELECT u.name FROM users u
+		JOIN chat_members cm ON
+		u.id = cm.user_id 
+		WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false, false
+	}
+
+	defer users.Close()
+
+	var groupMem []string
+	for users.Next() {
+		var u string
+		if err := users.Scan(&u); err != nil {
+			log.Println("scan error:", err)
+			continue
+		}
+		groupMem = append(groupMem, u)
+	}
+
+	var isGroup bool 
+
+	if isGroupInt == 1 {
+		isGroup = true
+	} else {
+		isGroup = false
+	}
+
+	return groupMem, isGroup, true
 }
