@@ -87,7 +87,8 @@ func createTables() {
 		msg        TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		is_read    bool not null DEFAULT 0,
-		is_edited  bool not null DEFAULT 0)
+		is_edited  bool not null DEFAULT 0,
+		forwarded_from INTEGER DEFAULT 0)
 	`)
 
 	if err != nil {
@@ -113,11 +114,11 @@ func createTables() {
 	}
 
 	_, err = db.Exec(`--sql
-		CREATE TABLE if not EXISTS custom_names(
-		user_id     INTEGER NOT NULL,
-		chat_id     INTEGER NOT NULL,
+		CREATE TABLE custom_names (
+		owner_id    INTEGER NOT NULL,
+		target_id   INTEGER NOT NULL,
 		custom_name TEXT NOT NULL,
-		PRIMARY KEY (user_id,chat_id))
+		PRIMARY KEY (owner_id, target_id))
 	`)
 
 	if err != nil {

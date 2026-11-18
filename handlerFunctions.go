@@ -516,3 +516,27 @@ func editMsgWS(c *Client, req *Packet) {
 		}
 	}
 }
+
+func getCustomNamesWS(c *Client) {
+	if c.Name == "" {
+		c.send(Packet{Type: "getCustomNamesStatus", Answer: "not logged in"})
+		return
+	}
+
+	list, ok := getCustomNames(c.Name)
+
+	if !ok {
+		c.send(Packet{Type: "getCustomNamesStatus", Answer: "failed"})
+		return
+	}
+
+	data, err := json.Marshal(list)
+
+	if err != nil {
+		log.Println(err)
+		c.send(Packet{Type: "getCustomNamesStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "getCustomNamesStatus", Answer: "ok", Data: data})
+}

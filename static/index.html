@@ -20,69 +20,69 @@
 
 <body>
 
-  <div id="connection-status">CONNECTION LOST. WAITING FOR NETWORK...</div>
+  <div id="connection-status" data-i18n="conn_lost">CONNECTION LOST. WAITING FOR NETWORK...</div>
 
-  <!-- ================== SCREENS ================== -->
   <div class="screen" id="login-screen">
     <h1>NeoTalk</h1>
-    <input id="login-name" placeholder="Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
-    <input id="login-pass" type="password" placeholder="Password">
-    <button id="login-btn">Log In</button>
-    <button id="to-register">Register</button>
+    <input id="login-name" placeholder="Name" data-i18n-placeholder="name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    <input id="login-pass" type="password" placeholder="Password" data-i18n-placeholder="password">
+    <button id="login-btn" data-i18n="log_in">Log In</button>
+    <button id="to-register" data-i18n="register">Register</button>
   </div>
 
   <div class="screen" id="reg-screen">
     <h1>NeoTalk</h1>
-    <input id="reg-name"  placeholder="Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
-    <input id="reg-pass"  type="password" placeholder="Password">
-    <input id="reg-pass2" type="password" placeholder="Repeat Password">
-    <button id="reg-btn">Register</button>
-    <button id="to-login">Back to Log In</button>
+    <input id="reg-name"  placeholder="Name" data-i18n-placeholder="name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    <input id="reg-pass"  type="password" placeholder="Password" data-i18n-placeholder="password">
+    <input id="reg-pass2" type="password" placeholder="Repeat Password" data-i18n-placeholder="repeat_pass">
+    <button id="reg-btn" data-i18n="register">Register</button>
+    <button id="to-login" data-i18n="back_to_login">Back to Log In</button>
   </div>
 
   <div class="screen" id="new-choice-screen">
-    <h1>Create...</h1>
-    <button id="choice-dm-btn">New Chat</button>
-    <button id="choice-group-btn">New Group</button>
-    <button id="choice-back-btn">Back</button>
+    <h1 data-i18n="create">Create...</h1>
+    <button id="choice-dm-btn" data-i18n="new_chat">New Chat</button>
+    <button id="choice-group-btn" data-i18n="new_group">New Group</button>
+    <button id="choice-back-btn" data-i18n="back">Back</button>
   </div>
 
   <div class="screen" id="new-chat-screen">
-    <h1>New Chat</h1>
-    <input id="new-chat-input" placeholder="Username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
-    <button id="create-chat-btn">Create</button>
-    <button id="cancel-chat-btn">Back</button>
+    <h1 data-i18n="new_chat">New Chat</h1>
+    <input id="new-chat-input" placeholder="Username" data-i18n-placeholder="username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    <button id="create-chat-btn" data-i18n="create">Create</button>
+    <button id="cancel-chat-btn" data-i18n="back">Back</button>
   </div>
 
   <div class="screen" id="new-group-screen">
-    <h1>New Group</h1>
-    <input id="new-group-name" placeholder="Group Name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    <h1 data-i18n="new_group">New Group</h1>
+    <input id="new-group-name" placeholder="Group Name" data-i18n-placeholder="group_name" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
     <div id="group-chips-container"></div>
-    <input id="new-group-member-input" placeholder="Add Member (Enter)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
-    <button id="create-group-btn">Create</button>
-    <button id="cancel-group-btn">Back</button>
+    <input id="new-group-member-input" placeholder="Add Member (Enter)" data-i18n-placeholder="add_member" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+    <button id="create-group-btn" data-i18n="create">Create</button>
+    <button id="cancel-group-btn" data-i18n="back">Back</button>
   </div>
 
   <div class="screen" id="settings-screen">
-    <h1>Settings</h1>
-    <button id="settingsProfileBtn">Profile</button>
-    <button id="settingsLogoutBtn">Log Out</button>
-    <button id="settingsLangBtn">Change Language</button>
-    <button id="settingsNotifBtn">Enable Notifications</button>
-    <button id="backSettingsButton">Back</button>
+    <h1 data-i18n="settings">Settings</h1>
+    <div class="settings-buttons-container">
+      <button id="settingsProfileBtn" data-i18n="profile">Profile</button>
+      <button id="settingsLogoutBtn" data-i18n="log_out">Log Out</button>
+      <button id="settingsLangBtn" data-i18n="change_lang">Change Language</button>
+      <button id="settingsNotifBtn" data-i18n="enable_notifs">Enable Notifications</button>
+      <button id="backSettingsButton" data-i18n="back">Back</button>
+    </div>
   </div>
 
   <div class="screen" id="coming-soon">
-    <h1>Coming soon..</h1>
-    <button id="soonBackBtn">Back</button>
+    <h1 data-i18n="coming_soon">Coming soon..</h1>
+    <button id="soonBackBtn" data-i18n="back">Back</button>
   </div>
 
-  <!-- ================== MAIN CHAT INTERFACE ================== -->
   <div id="chats">
     <div class="app">
       <aside class="sidebar">
         <div class="sidebar-header">
-          <span>Chats</span>
+          <span data-i18n="chats">Chats</span>
           <div>
             <button id="new-chat-btn">+</button>
             <button id="settings-btn">⚙</button>
@@ -102,22 +102,20 @@
         </header>
         <ul class="messages"></ul>
         <form class="send">
-          <input type="search" name="message" placeholder="Message..." maxlength="1000" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+          <input type="search" name="message" placeholder="Message..." data-i18n-placeholder="message" maxlength="1000" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
           <button>→</button>
         </form>
       </main>
     </div>
   </div>
 
-  <!-- ================== FLOATING POPOVERS ================== -->
   <div id="msg-popover" class="msg-popover"></div>
   <div id="dots-menu" class="msg-popover"></div>
 
-  <!-- ================== MODALS ================== -->
   <div id="chat-context-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-chat-modal-btn">×</button>
-      <h2>Chat Actions</h2>
+      <h2 data-i18n="chat_actions">Chat Actions</h2>
       <button class="action-btn" id="chat-modal-action-btn">Delete Chat</button>
     </div>
   </div>
@@ -127,47 +125,47 @@
       <button class="modal-close" id="close-profile-modal-btn">×</button>
       <div class="chat-avatar profile-avatar" id="profile-avatar"></div>
       <h2 id="profile-name"></h2>
-      <button class="action-btn" id="rename-profile-btn">Rename Contact</button>
-      <button class="action-btn" id="reset-profile-btn">Reset Name</button>
+      <button class="action-btn" id="rename-profile-btn" data-i18n="rename_contact">Rename Contact</button>
+      <button class="action-btn" id="reset-profile-btn" data-i18n="reset_name">Reset Name</button>
     </div>
   </div>
 
   <div id="group-members-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-group-members-modal-btn">×</button>
-      <h2 id="group-members-title">Members</h2>
+      <h2 id="group-members-title" data-i18n="members">Members</h2>
       <ul class="members-list" id="group-members-list"></ul>
-      <button class="action-btn" id="rename-group-btn">Rename Group</button>
-      <button class="action-btn" id="reset-group-btn">Reset Name</button>
     </div>
   </div>
 
   <div id="rename-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-rename-modal-btn">×</button>
-      <h2>New Name</h2>
-      <input type="text" id="rename-input" placeholder="Enter name..." maxlength="50">
-      <button class="action-btn" id="save-rename-btn">Save</button>
+      <h2 data-i18n="new_name">New Name</h2>
+      <input type="text" id="rename-input" placeholder="Enter name..." data-i18n-placeholder="enter_name" maxlength="50">
+      <button class="action-btn" id="save-rename-btn" data-i18n="save">Save</button>
     </div>
   </div>
 
   <div id="edit-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-edit-modal-btn">×</button>
-      <h2>Edit Message</h2>
-      <input type="text" id="edit-input" placeholder="Message..." maxlength="1000">
-      <button class="action-btn" id="save-edit-btn">Save</button>
+      <h2 data-i18n="edit_message">Edit Message</h2>
+      <input type="text" id="edit-input" placeholder="Message..." data-i18n-placeholder="message" maxlength="1000">
+      <button class="action-btn" id="save-edit-btn" data-i18n="save">Save</button>
     </div>
   </div>
 
   <div id="error-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-error-modal-btn">×</button>
-      <h2>Error</h2>
+      <h2 data-i18n="error">Error</h2>
       <p id="error-text" style="font-size: 10px; color: #ff5555; margin: 0;"></p>
-      <button class="action-btn" id="ok-error-btn">OK</button>
+      <button class="action-btn" id="ok-error-btn" data-i18n="ok">OK</button>
     </div>
   </div>
+
+  <div id="toast"></div>
 
   <script src="app.js" defer></script>
 </body>

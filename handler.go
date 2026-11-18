@@ -118,6 +118,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			makeCustomNameWS(cl, &req)
 		case "delCustomName":
 			delCustomNameWS(cl, &req)
+		case "getCustomNames":
+			getCustomNamesWS(cl)
 		case "editMsg":
 			editMsgWS(cl, &req)
 		default:

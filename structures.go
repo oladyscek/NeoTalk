@@ -18,8 +18,13 @@ type HistoryFormat struct {
 	IsEdited bool   `json:"isEdited"`
 }
 
+type NamesFormat struct {
+	
+}
+
 type ChatFormat struct {
 	ChatName      string `json:"chatName"`
+	PeerName      string `json:"peerName"`
 	ID            int    `json:"id"`
 	IsGroup       bool   `json:"isGroup"`
 	LastUsed      string `json:"lastUsed"`
@@ -30,27 +35,28 @@ type ChatFormat struct {
 }
 
 type Packet struct {
-	Type     string          `json:"type"`
-	From     string          `json:"from,omitempty"`
-	To       string          `json:"to,omitempty"`
-	Text     string          `json:"text,omitempty"`
-	Name     string          `json:"name,omitempty"`
-	Password string          `json:"password,omitempty"`
-	Answer   string          `json:"answer,omitempty"`
-	ChatID   int             `json:"chatId"`
-	MsgId    int             `json:"msgId"`
-	IsGroup  bool            `json:"isGroup"`
-	Data     json.RawMessage `json:"data,omitempty"`
-	Token    string          `json:"token,omitempty"`
-	BeforeID int             `json:"beforeId,omitempty"`
-	HasMore  bool            `json:"hasMore,omitempty"`
-	Time     string          `json:"time,omitempty"`
+	Type         string          `json:"type"`
+	From         string          `json:"from,omitempty"`
+	To           string          `json:"to,omitempty"`
+	Text         string          `json:"text,omitempty"`
+	Name         string          `json:"name,omitempty"`
+	Password     string          `json:"password,omitempty"`
+	Answer       string          `json:"answer,omitempty"`
+	ChatID       int             `json:"chatId"`
+	MsgId        int             `json:"msgId"`
+	IsGroup      bool            `json:"isGroup"`
+	Data         json.RawMessage `json:"data,omitempty"`
+	Token        string          `json:"token,omitempty"`
+	BeforeID     int             `json:"beforeId,omitempty"`
+	HasMore      bool            `json:"hasMore,omitempty"`
+	Time         string          `json:"time,omitempty"`
+	ForwardMsgId int             `json:"forwardMsgId,omitempty"`
 }
 
 type Client struct {
-	Conn    *websocket.Conn
-	Name    string
-	WriteMu sync.Mutex
+	Conn        *websocket.Conn
+	Name        string
+	WriteMu     sync.Mutex
 
 	MsgCount    int
 	LastMsgTime time.Time
