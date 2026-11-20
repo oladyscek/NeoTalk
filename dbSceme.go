@@ -114,7 +114,7 @@ func createTables() {
 	}
 
 	_, err = db.Exec(`--sql
-		CREATE TABLE custom_names (
+		CREATE TABLE IF NOT EXISTS custom_names (
 		owner_id    INTEGER NOT NULL,
 		target_id   INTEGER NOT NULL,
 		custom_name TEXT NOT NULL,

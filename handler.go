@@ -89,39 +89,41 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		switch req.Type { // all WS functions could be found in handlerFunctions.go
+		switch req.Type {
 		case "reg":
 			regWS(cl, &req)
 		case "login":
 			loginWS(cl, &req)
-		case "sendMsg":
-			sendMsgWS(cl, &req)
-		case "getHistory":
-			getHistoryWS(cl, &req)
-		case "createChat":
-			createChatWS(cl, &req)
-		case "getChats":
-			getChatsWS(cl)
 		case "auth":
 			authWS(cl, &req)
+		case "sendMsg":
+			sendMsgWS(cl, &req)
+		case "editMsg":
+			editMsgWS(cl, &req)
+		case "forwardMsg":
+			forwardMsgWS(cl, &req)
 		case "delMsg":
 			delMsgWS(cl, &req)
-		case "delChat":
-			delChatWS(cl, &req)
 		case "chatRead":
 			chatReadWS(cl, &req)
-		case "savePushSub":
-			savePushSubWS(cl, &req)
+		case "getHistory":
+			getHistoryWS(cl, &req)
+		case "getChats":
+			getChatsWS(cl)
+		case "createChat":
+			createChatWS(cl, &req)
+		case "delChat":
+			delChatWS(cl, &req)
 		case "getGroupMembers":
 			getGroupMembersWS(cl, &req)
+		case "getCustomNames":
+			getCustomNamesWS(cl)
 		case "makeCustomName":
 			makeCustomNameWS(cl, &req)
 		case "delCustomName":
 			delCustomNameWS(cl, &req)
-		case "getCustomNames":
-			getCustomNamesWS(cl)
-		case "editMsg":
-			editMsgWS(cl, &req)
+		case "savePushSub":
+			savePushSubWS(cl, &req)
 		default:
 			log.Println("unknown type:", req.Type)
 		}

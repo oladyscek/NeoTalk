@@ -9,54 +9,75 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// HistoryFormat represents a single message in the chat history
 type HistoryFormat struct {
-	Id       int    `json:"id"`
-	Message  string `json:"message"`
-	Time     string `json:"time"`
-	Sender   string `json:"sender"`
-	IsRead   bool   `json:"isRead"`
-	IsEdited bool   `json:"isEdited"`
+	// --- Message Identity ---
+	Id     int    `json:"id"`
+	Sender string `json:"sender"` // Original username
+	Time   string `json:"time"`
+
+	// --- Content ---
+	Message       string `json:"message"`
+	IsEdited      bool   `json:"isEdited"`
+	ForwardedFrom string `json:"forwardedFrom"`
+
+	// --- Status ---
+	IsRead bool `json:"isRead"`
 }
 
-type NamesFormat struct {
-	
-}
-
+// ChatFormat represents a chat entry in the sidebar list
 type ChatFormat struct {
-	ChatName      string `json:"chatName"`
-	PeerName      string `json:"peerName"`
-	ID            int    `json:"id"`
-	IsGroup       bool   `json:"isGroup"`
-	LastUsed      string `json:"lastUsed"`
-	Unread        int    `json:"unread"`
+	// --- Chat Identity & Display ---
+	ID       int    `json:"id"`
+	IsGroup  bool   `json:"isGroup"`
+	ChatName string `json:"chatName"` // Display name (with custom nickname applied)
+	PeerName string `json:"peerName"` // Original username (used for routing in DMs)
+
+	// --- Last Message Preview ---
 	LastMsg       string `json:"lastMsg"`
 	LastMsgSender string `json:"lastMsgSender"`
 	LastMsgIsRead bool   `json:"lastMsgIsRead"`
+	LastUsed      string `json:"lastUsed"`
+
+	// --- Status ---
+	Unread int `json:"unread"`
 }
 
 type Packet struct {
-	Type         string          `json:"type"`
-	From         string          `json:"from,omitempty"`
-	To           string          `json:"to,omitempty"`
-	Text         string          `json:"text,omitempty"`
-	Name         string          `json:"name,omitempty"`
-	Password     string          `json:"password,omitempty"`
-	Answer       string          `json:"answer,omitempty"`
-	ChatID       int             `json:"chatId"`
-	MsgId        int             `json:"msgId"`
-	IsGroup      bool            `json:"isGroup"`
-	Data         json.RawMessage `json:"data,omitempty"`
-	Token        string          `json:"token,omitempty"`
-	BeforeID     int             `json:"beforeId,omitempty"`
-	HasMore      bool            `json:"hasMore,omitempty"`
-	Time         string          `json:"time,omitempty"`
-	ForwardMsgId int             `json:"forwardMsgId,omitempty"`
+	// --- Meta & Status ---
+	Type   string `json:"type"`
+	Answer string `json:"answer,omitempty"` // ok, failed, denied, not logged in
+
+	// --- Auth & Identity ---
+	Token    string `json:"token,omitempty"`
+	Name     string `json:"name,omitempty"` // username, group name, or custom name
+	Password string `json:"password,omitempty"`
+
+	// --- Routing & Chat Context ---
+	From    string `json:"from,omitempty"` // sender (server -> client)
+	To      string `json:"to,omitempty"`   // recipient (client -> server for DM)
+	ChatID  int    `json:"chatId"`
+	IsGroup bool   `json:"isGroup"`
+
+	// --- Message Payload ---
+	MsgId         int    `json:"msgId"`
+	Text          string `json:"text,omitempty"`
+	Time          string `json:"time,omitempty"`
+	ForwardMsgId  int    `json:"forwardMsgId,omitempty"`
+	ForwardedFrom string `json:"forwardedFrom,omitempty"`
+
+	// --- Pagination (History) ---
+	BeforeID int  `json:"beforeId,omitempty"`
+	HasMore  bool `json:"hasMore,omitempty"`
+
+	// --- Arbitrary Data ---
+	Data json.RawMessage `json:"data,omitempty"` // arrays (user lists, chats) or raw objects
 }
 
 type Client struct {
-	Conn        *websocket.Conn
-	Name        string
-	WriteMu     sync.Mutex
+	Conn    *websocket.Conn
+	Name    string
+	WriteMu sync.Mutex
 
 	MsgCount    int
 	LastMsgTime time.Time

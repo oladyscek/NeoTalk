@@ -11,10 +11,9 @@ const translations = {
     edit: 'Edit', copy: 'Copy', forward: 'Forward', delete: 'Delete', err_login: 'Login: ', err_reg: 'Registration: ', err_create: 'Create error: ',
     err_load_members: 'Failed to load members', err_rename: 'Failed to rename', err_reset_name: 'Failed to reset name',
     err_del_msg: 'Failed to delete message.', err_del_chat: 'Failed to delete chat', err_copy: 'Failed to copy messages',
-    forward_soon: 'Message forwarding will be available in future updates!', msg_too_long: 'Message is too long!',
-    msg_slow_down: 'Too many messages! Please wait a second.', msg_server_err: 'Server error while sending.',
+    msg_too_long: 'Message is too long!', msg_slow_down: 'Too many messages! Please wait a second.', msg_server_err: 'Server error while sending.',
     notifs_enabled: 'Notifications enabled', no_permission: 'No permission', disconnected: 'Disconnected: Account opened in another tab/device.',
-    left_group: 'left the group'
+    left_group: 'left the group', forwarded_from: 'Forwarded from: ', no_chats: 'No chats available'
   },
   ru: {
     conn_lost: 'СОЕДИНЕНИЕ ПОТЕРЯНО. ОЖИДАНИЕ СЕТИ...', name: 'Имя', password: 'Пароль', repeat_pass: 'Повторите пароль',
@@ -27,10 +26,9 @@ const translations = {
     edit: 'Изменить', copy: 'Копировать', forward: 'Переслать', delete: 'Удалить', err_login: 'Ошибка входа: ', err_reg: 'Ошибка регистрации: ', err_create: 'Ошибка создания: ',
     err_load_members: 'Не удалось загрузить участников', err_rename: 'Не удалось переименовать', err_reset_name: 'Не удалось сбросить имя',
     err_del_msg: 'Не удалось удалить сообщение.', err_del_chat: 'Не удалось удалить чат', err_copy: 'Не удалось скопировать сообщения',
-    forward_soon: 'Пересылка сообщений появится в будущих обновлениях!', msg_too_long: 'Сообщение слишком длинное!',
-    msg_slow_down: 'Слишком много сообщений! Подождите секунду.', msg_server_err: 'Ошибка сервера при отправке.',
+    msg_too_long: 'Сообщение слишком длинное!', msg_slow_down: 'Слишком много сообщений! Подождите секунду.', msg_server_err: 'Ошибка сервера при отправке.',
     notifs_enabled: 'Уведомления включены', no_permission: 'Нет разрешения', disconnected: 'Отключено: Аккаунт открыт в другой вкладке/устройстве.',
-    left_group: 'покинул(а) группу'
+    left_group: 'покинул(а) группу', forwarded_from: 'Переслано от: ', no_chats: 'Нет доступных чатов'
   }
 };
 
@@ -78,6 +76,8 @@ let pendingEditOldText = null;
 let pendingEditNewText = null;
 let pendingRenameId = null;
 let pendingRenameName = null;
+
+let forwardingMsgId = null;
 
 // Drag selection state
 let mouseDownTarget = null;
@@ -338,11 +338,22 @@ function connectWebSocket() {
             const lastMsg = myMsgs[myMsgs.length - 1];
             lastMsg.dataset.msgId = p.msgId;
             lastMsg.classList.remove('pending');
-            updateChatPreview(p.chatId, lastMsg.dataset.originalText, myName, false, new Date().toISOString());
+            updateChatPreview(p.chatId, lastMsg.dataset.originalText, myName, false, new Date().toISOString(), null);
           }
         } else if (p.answer === 'failed') revertLastMessage(t('msg_server_err'));
         else if (p.answer === 'invalidMsgLength') revertLastMessage(t('msg_too_long'));
         else if (p.answer === 'slow_down') revertLastMessage(t('msg_slow_down'));
+        break;
+      case 'forwardMsgStatus':
+        if (p.answer === 'ok') {
+          showToast('Forwarded');
+          if (p.chatId === currentChatId) {
+            oldestMessageId = null; hasMoreHistory = true; isLoadingHistory = false; lastAppendedDate = null;
+            messagesList.innerHTML = '';
+            send({ type: 'getHistory', chatId: currentChatId, beforeId: 0 });
+          }
+          send({ type: 'getChats' });
+        } else showError(t('error'));
         break;
       case 'delMsg': {
         const el = messagesList.querySelector(`li.msg-row[data-msg-id="${p.msgId}"]`);
@@ -378,7 +389,7 @@ function connectWebSocket() {
             if (editedLi) {
               const chat = chatsById[pendingEditChatId];
               if (chat && chat.lastMsg === pendingEditOldText && chat.lastMsgSender === myName) {
-                updateChatPreview(pendingEditChatId, pendingEditNewText, myName, chat.lastMsgIsRead, chat.lastUsed);
+                updateChatPreview(pendingEditChatId, pendingEditNewText, myName, chat.lastMsgIsRead, chat.lastUsed, null);
               }
             }
           }
@@ -398,7 +409,7 @@ function connectWebSocket() {
               if (next.classList.contains('msg-row')) { isLast = false; break; }
               next = next.nextElementSibling;
             }
-            if (isLast) updateChatPreview(currentChatId, p.text, editedLi.dataset.sender, chat.lastMsgIsRead, chat.lastUsed);
+            if (isLast) updateChatPreview(currentChatId, p.text, editedLi.dataset.sender, chat.lastMsgIsRead, chat.lastUsed, null);
           }
         }
         break;
@@ -521,6 +532,10 @@ const errorText = document.getElementById('error-text');
 const okErrorBtn = document.getElementById('ok-error-btn');
 const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
 
+const forwardModal = document.getElementById('forward-modal');
+const closeForwardModalBtn = document.getElementById('close-forward-modal-btn');
+const forwardChatList = document.getElementById('forward-chat-list');
+
 let renameTargetId = null;
 
 function showError(msg) {
@@ -531,6 +546,30 @@ function showError(msg) {
 closeErrorModalBtn.onclick = () => errorModal.style.display = 'none';
 okErrorBtn.onclick = () => errorModal.style.display = 'none';
 errorModal.onclick = (e) => { if (e.target === errorModal) errorModal.style.display = 'none'; };
+
+closeForwardModalBtn.onclick = () => forwardModal.style.display = 'none';
+forwardModal.onclick = (e) => { if (e.target === forwardModal) forwardModal.style.display = 'none'; };
+
+function openForwardModal(msgId) {
+  forwardingMsgId = msgId;
+  forwardChatList.innerHTML = '';
+  
+  if (Object.keys(chatsById).length === 0) {
+    forwardChatList.innerHTML = `<li style="justify-content:center; border:none;">${t('no_chats')}</li>`;
+  } else {
+    Object.values(chatsById).forEach(chat => {
+      const li = document.createElement('li');
+      li.textContent = chat.chatName;
+      li.style.cursor = 'pointer';
+      li.onclick = () => {
+        send({ type: 'forwardMsg', chatId: chat.id, forwardMsgId: forwardingMsgId });
+        forwardModal.style.display = 'none';
+      };
+      forwardChatList.appendChild(li);
+    });
+  }
+  forwardModal.style.display = 'flex';
+}
 
 // ================== SCREEN NAVIGATION ==================
 function hideAllScreens() {
@@ -645,13 +684,8 @@ function applyEditToDOM(msgId, newText) {
   const li = messagesList.querySelector(`li.msg-row[data-msg-id="${msgId}"]`);
   if (!li) return null;
   const textSpan = li.querySelector('.msg-text');
-  const sender = li.dataset.sender;
-  const chat = chatsById[currentChatId];
-  const isGroup = chat ? chat.isGroup : false;
-  const showName = isGroup && sender !== myName;
-  const displayName = getDisplayName(sender);
-
-  if (textSpan) textSpan.textContent = showName ? (displayName + ': ' + newText) : newText;
+  
+  if (textSpan) textSpan.textContent = newText;
   li.dataset.originalText = newText;
 
   const timeEl = li.querySelector('.msg-time');
@@ -788,7 +822,7 @@ function setUnreadUI(chatId, count) {
   } else clearUnreadUI(chatId);
 }
 
-function updateChatPreview(chatId, text, sender, isRead, timeStr) {
+function updateChatPreview(chatId, text, sender, isRead, timeStr, forwardedFrom) {
   const li = chatList.querySelector(`li[data-chat-id="${chatId}"]`);
   if (!li) return;
   const chat = chatsById[chatId];
@@ -806,8 +840,14 @@ function updateChatPreview(chatId, text, sender, isRead, timeStr) {
   const msgSpan = bottomDiv.querySelector('.chat-last-msg');
   if (msgSpan) {
     const displaySender = getDisplayName(sender);
-    if (chat.isGroup && sender && sender !== 'SYSTEM' && sender !== myName) msgSpan.textContent = displaySender + ': ' + text;
-    else msgSpan.textContent = text;
+    let prefix = '';
+    if (forwardedFrom) prefix = '[Fwd] ';
+    
+    if (chat.isGroup && sender && sender !== 'SYSTEM' && sender !== myName) {
+      msgSpan.textContent = displaySender + ': ' + prefix + text;
+    } else {
+      msgSpan.textContent = prefix + text;
+    }
   }
 
   chat.lastMsg = text; chat.lastMsgSender = sender; chat.lastMsgIsRead = isRead; chat.lastUsed = timeStr;
@@ -936,8 +976,9 @@ messagesList.onscroll = () => {
   }
 };
 
-function createMessageEl(sender, text, msgId, timeStr, isRead, isEdited) {
+function createMessageEl(sender, text, msgId, timeStr, isRead, isEdited, forwardedFrom) {
   const li = document.createElement('li');
+  
   if (sender === 'SYSTEM') {
     li.className = 'system-msg';
     let sysText = text;
@@ -954,17 +995,44 @@ function createMessageEl(sender, text, msgId, timeStr, isRead, isEdited) {
   li.dataset.time = timeStr || new Date().toISOString();
   li.dataset.sender = sender;
 
-  const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
-  const textSpan = document.createElement('span'); textSpan.className = 'msg-text';
-
   const chat = chatsById[currentChatId];
   const isGroup = chat ? chat.isGroup : false;
   const displaySender = getDisplayName(sender);
-  const showName = isGroup && (sender !== myName);
-  textSpan.textContent = showName ? (displaySender + ': ' + text) : text;
+
+  if (isGroup && sender !== myName) {
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'msg-avatar';
+    avatarEl.textContent = displaySender.charAt(0).toUpperCase();
+    li.appendChild(avatarEl);
+  }
+
+  const contentWrapper = document.createElement('div');
+  contentWrapper.className = 'msg-content-wrapper';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  if (isGroup && sender !== myName) {
+    const senderEl = document.createElement('div');
+    senderEl.className = 'msg-sender';
+    senderEl.textContent = displaySender;
+    bubble.appendChild(senderEl);
+  }
+
+  if (forwardedFrom) {
+    const fwdEl = document.createElement('div');
+    fwdEl.className = 'msg-forwarded';
+    fwdEl.textContent = t('forwarded_from') + getDisplayName(forwardedFrom);
+    bubble.appendChild(fwdEl);
+  }
+
+  const textSpan = document.createElement('span');
+  textSpan.className = 'msg-text';
+  textSpan.textContent = text;
   bubble.appendChild(textSpan);
 
-  const timeEl = document.createElement('span'); timeEl.className = 'msg-time';
+  const timeEl = document.createElement('span');
+  timeEl.className = 'msg-time';
   timeEl.appendChild(document.createTextNode(formatMsgTime(timeStr)));
 
   if (isEdited) {
@@ -979,7 +1047,10 @@ function createMessageEl(sender, text, msgId, timeStr, isRead, isEdited) {
     timeEl.appendChild(ticksEl);
   }
 
-  bubble.appendChild(timeEl); li.appendChild(bubble);
+  bubble.appendChild(timeEl);
+  contentWrapper.appendChild(bubble);
+  li.appendChild(contentWrapper);
+
   if (msgId) li.dataset.msgId = msgId;
   if (sender === myName && currentChatId) li.dataset.chatId = currentChatId;
   return li;
@@ -999,7 +1070,7 @@ function renderHistory(msgs) {
         const divider = document.createElement('li'); divider.className = 'date-divider';
         divider.textContent = formatDateDivider(m.time); fragment.appendChild(divider); currentBatchDate = dateStr;
       }
-      fragment.appendChild(createMessageEl(m.sender, m.message, m.id, m.time, m.isRead, m.isEdited));
+      fragment.appendChild(createMessageEl(m.sender, m.message, m.id, m.time, m.isRead, m.isEdited, m.forwardedFrom));
     }
     messagesList.insertBefore(fragment, messagesList.firstChild);
     messagesList.scrollTop += (messagesList.scrollHeight - prevHeight);
@@ -1013,7 +1084,7 @@ function renderHistory(msgs) {
         const divider = document.createElement('li'); divider.className = 'date-divider';
         divider.textContent = formatDateDivider(m.time); messagesList.appendChild(divider); currentBatchDate = dateStr;
       }
-      messagesList.appendChild(createMessageEl(m.sender, m.message, m.id, m.time, m.isRead, m.isEdited));
+      messagesList.appendChild(createMessageEl(m.sender, m.message, m.id, m.time, m.isRead, m.isEdited, m.forwardedFrom));
     }
     messagesList.scrollTop = messagesList.scrollHeight;
     if (msgs.length > 0) lastAppendedDate = getDateStr(msgs[msgs.length - 1].time);
@@ -1021,14 +1092,14 @@ function renderHistory(msgs) {
   oldestMessageId = msgs[0].id;
 }
 
-function addMessage(sender, text, msgId, timeStr, isEdited = false) {
+function addMessage(sender, text, msgId, timeStr, isEdited = false, forwardedFrom = '') {
   const isAtBottom = messagesList.scrollHeight - messagesList.scrollTop - messagesList.clientHeight < 50;
   const msgDate = getDateStr(timeStr);
   if (lastAppendedDate && msgDate !== lastAppendedDate) {
     const divider = document.createElement('li'); divider.className = 'date-divider';
     divider.textContent = formatDateDivider(timeStr); messagesList.appendChild(divider);
   }
-  const li = createMessageEl(sender, text, msgId, timeStr, false, isEdited);
+  const li = createMessageEl(sender, text, msgId, timeStr, false, isEdited, forwardedFrom);
   messagesList.appendChild(li);
   if (sender === myName || isAtBottom) messagesList.scrollTop = messagesList.scrollHeight;
   lastAppendedDate = msgDate;
@@ -1051,12 +1122,12 @@ sendForm.onsubmit = (e) => {
     executeSend(msgObj);
     const li = addMessage(myName, text, null, timeStr);
     li.classList.add('pending');
-    updateChatPreview(currentChatId, text, myName, false, timeStr);
+    updateChatPreview(currentChatId, text, myName, false, timeStr, false);
   } else {
     outbox.push(msgObj);
     const li = addMessage(myName, text, null, timeStr);
     li.classList.add('pending');
-    updateChatPreview(currentChatId, text, myName, false, timeStr);
+    updateChatPreview(currentChatId, text, myName, false, timeStr, false);
   }
   sendInput.value = '';
   sendInput.focus();
@@ -1084,9 +1155,9 @@ function handleIncomingMsg(p) {
   if (!targetChatId) return;
 
   if (targetChatId === currentChatId) {
-    addMessage(p.from, p.text, msgId, timeStr);
+    addMessage(p.from, p.text, msgId, timeStr, false, p.forwardedFrom);
     send({ type: 'chatRead', chatId: currentChatId });
-    updateChatPreview(targetChatId, p.text, p.from, false, timeStr);
+    updateChatPreview(targetChatId, p.text, p.from, false, timeStr, p.forwardedFrom);
   } else {
     const li = chatList.querySelector(`li[data-chat-id="${targetChatId}"]`);
     if (li) {
@@ -1094,7 +1165,7 @@ function handleIncomingMsg(p) {
       let count = badge ? parseInt(badge.textContent) : 0;
       if (count === 99) count = 100; else if (count < 99) count++;
       setUnreadUI(targetChatId, count);
-      updateChatPreview(targetChatId, p.text, p.from, false, timeStr);
+      updateChatPreview(targetChatId, p.text, p.from, false, timeStr, p.forwardedFrom);
     }
     if (document.hidden && Notification.permission === 'granted') {
       const notification = new Notification(getDisplayName(p.from), { body: p.text, icon: '/favicon.png' });
@@ -1240,7 +1311,11 @@ function openMsgPopover(li, x, y) {
 
   const forwardBtn = document.createElement('button');
   forwardBtn.textContent = t('forward');
-  forwardBtn.onclick = (ev) => { ev.stopPropagation(); showToast(t('forward_soon')); closeMsgPopover(); };
+  forwardBtn.onclick = (ev) => { 
+    ev.stopPropagation(); 
+    openForwardModal(parseInt(msgId)); 
+    closeMsgPopover(); 
+  };
   msgPopover.appendChild(forwardBtn);
 
   const deleteBtn = document.createElement('button');
@@ -1271,7 +1346,16 @@ function openDotsMenu() {
 
   const forwardBtn = document.createElement('button');
   forwardBtn.textContent = t('forward');
-  forwardBtn.onclick = (ev) => { ev.stopPropagation(); showToast(t('forward_soon')); closeDotsMenu(); };
+  forwardBtn.onclick = (ev) => { 
+    ev.stopPropagation(); 
+    if (selectedMsgIds.size > 1) {
+      showToast("Cannot forward multiple messages");
+    } else {
+      const id = Array.from(selectedMsgIds)[0];
+      openForwardModal(parseInt(id));
+    }
+    closeDotsMenu(); 
+  };
   dotsMenu.appendChild(forwardBtn);
 
   const deleteBtn = document.createElement('button');
@@ -1326,6 +1410,7 @@ document.addEventListener('keydown', (e) => {
     else if (groupMembersModal.style.display === 'flex') groupMembersModal.style.display = 'none';
     else if (renameModal.style.display === 'flex') renameModal.style.display = 'none';
     else if (editModal.style.display === 'flex') { editModal.style.display = 'none'; clearPendingEdit(); }
+    else if (forwardModal.style.display === 'flex') forwardModal.style.display = 'none';
     else if (errorModal.style.display === 'flex') errorModal.style.display = 'none';
     else if (currentChatId) closeActiveChat();
     else if (history.state && history.state.view !== 'chats' && history.state.view !== 'login') history.back();

@@ -540,3 +540,68 @@ func getCustomNamesWS(c *Client) {
 
 	c.send(Packet{Type: "getCustomNamesStatus", Answer: "ok", Data: data})
 }
+
+func forwardMsgWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "forwardMsgStatus", Answer: "not logged in"})
+		return
+	}
+
+	group, msg, isGroup, ok := forwardMsg(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "forwardMsgStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "forwardMsgStatus", Answer: "ok", MsgId: msg.Id, ChatID: req.ChatID})
+
+	if !isGroup {
+		mu.Lock()
+		r, exist := clients[group[0]]
+		mu.Unlock()
+
+		if exist {
+			r.send(Packet{
+				Type:          "incomedMsg",
+				From:          c.Name,
+				ChatID:        req.ChatID,
+				MsgId:         msg.Id,
+				Text:          msg.Message,
+				ForwardedFrom: msg.ForwardedFrom,
+			})
+		} else {
+			go sendPushNotification(group[0], "NeoTalk: "+c.Name, msg.Message)
+		}
+
+	} else {
+		members := make([]*Client, 0, len(group))
+		offlineNames := make([]string, 0, len(group))
+
+		mu.Lock()
+		for _, u := range group {
+			user, exist := clients[u]
+			if exist {
+				members = append(members, user)
+			} else {
+				offlineNames = append(offlineNames, u)
+			}
+		}
+		mu.Unlock()
+
+		for _, r := range members {
+			r.send(Packet{
+				Type:          "incomedMsg",
+				From:          c.Name,
+				ChatID:        req.ChatID,
+				MsgId:         msg.Id,
+				Text:          msg.Message,
+				ForwardedFrom: msg.ForwardedFrom,
+			})
+		}
+
+		for _, name := range offlineNames {
+			go sendPushNotification(name, "NeoTalk: "+c.Name, msg.Message)
+		}
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
@@ -449,7 +450,7 @@ func getChats(sender string) ([]ChatFormat, bool) {
 	return results, true
 }
 
-func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.ChatID = id of second user or groupgit
+func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) {
 	var userId int
 
 	err := db.QueryRow(`--sql
@@ -479,8 +480,9 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	if req.BeforeID == 0 {
 		data, err = db.Query(`--sql
-		SELECT m.id, m.msg, m.created_at, u.name, m.is_read, m.is_edited from messages m 
-		JOIN users u ON u.id = m.sender_id  
+		SELECT m.id, m.msg, m.created_at, u.name, m.is_read, m.is_edited, COALESCE(fwd.name, '') from messages m
+		JOIN users u ON u.id = m.sender_id
+		LEFT JOIN users fwd ON fwd.id = m.forwarded_from
 		where m.chat_id = ?
 		ORDER BY m.id DESC
 		LIMIT 101`, req.ChatID)
@@ -491,8 +493,9 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 		}
 	} else {
 		data, err = db.Query(`--sql
-		SELECT m.id, m.msg, m.created_at, u.name, m.is_read, m.is_edited from messages m 
-		JOIN users u ON u.id = m.sender_id  
+		SELECT m.id, m.msg, m.created_at, u.name, m.is_read, m.is_edited, COALESCE(fwd.name, '')  from messages m
+		JOIN users u ON u.id = m.sender_id
+		LEFT JOIN users fwd ON fwd.id = m.forwarded_from
 		where m.chat_id = ? and m.id < ?
 		ORDER BY m.id DESC
 		LIMIT 101`, req.ChatID, req.BeforeID)
@@ -508,7 +511,7 @@ func getHistory(req *Packet, sender string) ([]HistoryFormat, bool) { // req.Cha
 
 	for data.Next() {
 		var c HistoryFormat
-		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender, &c.IsRead, &c.IsEdited); err != nil {
+		if err := data.Scan(&c.Id, &c.Message, &c.Time, &c.Sender, &c.IsRead, &c.IsEdited, &c.ForwardedFrom); err != nil {
 			log.Println("scan error:", err)
 			continue
 		}
@@ -1275,7 +1278,7 @@ func editMsg(name string, req *Packet) ([]string, bool, bool) {
 	return groupMem, isGroup, true
 }
 
-func getCustomNames(ownerName string) (map[string]string, bool) {
+func getCustomNames(name string) (map[string]string, bool) {
 	res := make(map[string]string)
 
 	rows, err := db.Query(`--sql
@@ -1283,7 +1286,7 @@ func getCustomNames(ownerName string) (map[string]string, bool) {
 		FROM custom_names cn
 		JOIN users u ON u.id = cn.target_id
 		JOIN users owner ON owner.id = cn.owner_id
-		WHERE owner.name = ? COLLATE NOCASE`, ownerName)
+		WHERE owner.name = ? COLLATE NOCASE`, name)
 
 	if err != nil {
 		return nil, false
@@ -1303,4 +1306,123 @@ func getCustomNames(ownerName string) (map[string]string, bool) {
 	}
 
 	return res, true
+}
+
+func forwardMsg(name string, req *Packet) ([]string, HistoryFormat, bool, bool) {
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	var er HistoryFormat
+	er = HistoryFormat{Id: -1}
+
+	if err != nil {
+		log.Println(err)
+		return nil, er, false, false
+	}
+
+	var ok int
+
+	err = db.QueryRow(`--sql
+	SELECT EXISTS(
+		SELECT 1 FROM messages m 
+		JOIN chat_members cm ON m.chat_id = cm.chat_id 
+		WHERE m.id = ? AND cm.user_id = ?
+	)`, req.ForwardMsgId, userId).Scan(&ok)
+
+	if err != nil {
+		log.Println(err)
+		return nil, er, false, false
+	}
+
+	if ok == 0 {
+		return nil, er, false, false
+	}
+
+	err = db.QueryRow(`--sql
+	SELECT EXISTS(SELECT 1 FROM chat_members where chat_id = ? AND user_id = ?)`,
+		req.ChatID, userId).Scan(&ok)
+
+	if err != nil {
+		log.Println(err)
+		return nil, er, false, false
+	}
+
+	if ok == 0 {
+		return nil, er, false, false
+	}
+
+	res, err := db.Exec(`--sql
+		INSERT INTO messages (chat_id, sender_id, msg, forwarded_from)
+		SELECT ?, ?, m.msg, COALESCE(m.forwarded_from, m.sender_id)
+		FROM messages m
+		WHERE m.id = ?`,
+		req.ChatID, userId, req.ForwardMsgId)
+
+	if err != nil {
+		log.Println("forward insert error:", err)
+		return nil, er, false, false
+	}
+
+	msgID, err := res.LastInsertId()
+
+	if err != nil {
+		log.Println("fetch orig msg error:", err)
+		return nil, er, false, false
+	}
+
+	var origMsg string
+	var origSenderName string
+
+	err = db.QueryRow(`--sql
+    SELECT m.msg, u.name 
+    FROM messages m 
+    JOIN users u ON u.id = COALESCE(m.forwarded_from, m.sender_id)
+    WHERE m.id = ?`, req.ForwardMsgId).Scan(&origMsg, &origSenderName)
+
+	if err != nil {
+		log.Println("fetch orig msg error:", err)
+		return nil, er, false, false
+	}
+
+	msg := HistoryFormat{
+		Id:            int(msgID),
+		Message:       origMsg,
+		Time:          time.Now().UTC().Format("2006-01-02 15:04:05"),
+		Sender:        name,
+		IsRead:        false,
+		IsEdited:      false,
+		ForwardedFrom: origSenderName,
+	}
+
+	var isGroupInt int
+
+	err = db.QueryRow(`--sql
+	SELECT is_group FROM chats WHERE id = ?`, req.ChatID).Scan(&isGroupInt)
+	if err != nil {
+		return nil, er, false, false
+	}
+	isGroup := isGroupInt == 1
+
+	users, err := db.Query(`--sql
+		SELECT u.name FROM users u
+		JOIN chat_members cm ON u.id = cm.user_id 
+		WHERE cm.chat_id = ? AND u.name != ? COLLATE NOCASE`, req.ChatID, name)
+	if err != nil {
+		return nil, er, false, false
+	}
+	defer users.Close()
+
+	var groupMem []string
+
+	for users.Next() {
+		var u string
+		if err := users.Scan(&u); err != nil {
+			continue
+		}
+		groupMem = append(groupMem, u)
+	}
+
+	return groupMem, msg, isGroup, true
 }
