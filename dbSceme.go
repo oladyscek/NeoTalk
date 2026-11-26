@@ -126,6 +126,17 @@ func createTables() {
 	}
 
 	_, err = db.Exec(`--sql
+		CREATE TABLE IF NOT EXISTS contacts (
+		user_id    INTEGER NOT NULL,
+		target_id   INTEGER NOT NULL,
+		PRIMARY KEY (user_id, target_id))
+	`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(`--sql
 		CREATE UNIQUE INDEX IF NOT EXISTS
 		idx_users_name_nocase ON users(name COLLATE NOCASE)`)
 

@@ -1207,7 +1207,7 @@ func editMsg(name string, req *Packet) ([]string, bool, bool) {
 	SELECT EXISTS(
     SELECT 1 FROM messages m 
     JOIN chat_members cm ON m.chat_id = cm.chat_id AND m.sender_id = cm.user_id
-    WHERE m.id = ? AND m.sender_id = ? AND m.chat_id = ?
+    WHERE m.id = ? AND m.sender_id = ? AND m.chat_id = ? AND m.forwarded_from IS NULL
 		)`, req.MsgId, userId, req.ChatID).Scan(&ok)
 
 	if err != nil {
@@ -1425,4 +1425,155 @@ func forwardMsg(name string, req *Packet) ([]string, HistoryFormat, bool, bool) 
 	}
 
 	return groupMem, msg, isGroup, true
+}
+
+func makeContact(name string, req *Packet) bool {
+	if req.Name == "" {
+		return false
+	}
+
+	if strings.EqualFold(req.Name, name) {
+		return false
+	}
+
+	var isExistInt int
+
+	err := db.QueryRow(`--sql
+	select exists(select 1 from users where name = ? COLLATE NOCASE)`, req.Name).Scan(&isExistInt)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	isExist := isExistInt == 1
+
+	if !isExist {
+		return false
+	}
+
+	var userId int
+
+	err = db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	var targetId int
+
+	err = db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`,
+		req.Name).Scan(&targetId)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	_, err = db.Exec(`--sql
+	INSERT INTO contacts (user_id, target_id) 
+	VALUES (?, ?)`, userId, targetId)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
+}
+
+func delContact(name string, req *Packet) bool {
+	if req.Name == "" {
+		return false
+	}
+
+	var isExistInt int
+
+	err := db.QueryRow(`--sql
+	select exists(select 1 from users where name = ? COLLATE NOCASE)`, req.Name).Scan(&isExistInt)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	isExist := isExistInt == 1
+
+	if !isExist {
+		return false
+	}
+
+	var userId int
+
+	err = db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	var targetId int
+
+	err = db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, req.Name).Scan(&targetId)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	_, err = db.Exec(`--sql
+	DELETE FROM contacts WHERE user_id = ? AND target_id = ?`,
+		userId, targetId)
+
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
+}
+
+func getContacts(name string) ([]string, bool) {
+	var userId int
+
+	err := db.QueryRow(`--sql
+	select id from users where name = ? COLLATE NOCASE`, name).Scan(&userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	res := make([]string, 0, 20)
+
+	rows, err := db.Query(`--sql
+	SELECT u.name FROM users u 
+	JOIN contacts c ON u.id = c.target_id
+	WHERE c.user_id = ?`, userId)
+
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var contact string
+		if err := rows.Scan(&contact); err == nil {
+			res = append(res, contact)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Println("rows error:", err)
+		return nil, false
+	}
+
+	return res, true
 }

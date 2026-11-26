@@ -66,6 +66,7 @@
     <h1 data-i18n="settings">Settings</h1>
     <div class="settings-buttons-container">
       <button id="settingsProfileBtn" data-i18n="profile">Profile</button>
+      <button id="settingsContactsBtn" data-i18n="contacts">Contacts</button>
       <button id="settingsLogoutBtn" data-i18n="log_out">Log Out</button>
       <button id="settingsLangBtn" data-i18n="change_lang">Change Language</button>
       <button id="settingsNotifBtn" data-i18n="enable_notifs">Enable Notifications</button>
@@ -111,7 +112,28 @@
 
   <div id="msg-popover" class="msg-popover"></div>
   <div id="dots-menu" class="msg-popover"></div>
+  
+  <!-- Dropdown for Group Menu -->
+  <div id="group-menu-dropdown" class="msg-popover" style="z-index: 1050;">
+    <button id="group-opt-add" data-i18n="add_member">Add Member</button>
+    <button id="group-opt-rename" data-i18n="rename_group">Rename Group</button>
+    <button id="group-opt-avatar" data-i18n="change_avatar">Change Avatar</button>
+  </div>
 
+  <!-- Contacts Modal -->
+  <div id="contacts-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-contacts-modal-btn">×</button>
+      <h2 data-i18n="contacts">Contacts</h2>
+      <ul class="members-list" id="contacts-list"></ul>
+      <div class="add-input-group">
+        <input type="text" id="new-contact-input" placeholder="Username" data-i18n-placeholder="username">
+        <button class="action-btn" id="add-contact-btn" data-i18n="add">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forward Modal -->
   <div id="forward-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-forward-modal-btn">×</button>
@@ -128,21 +150,41 @@
     </div>
   </div>
 
-  <div id="profile-modal">
+    <div id="profile-modal">
     <div class="modal-content">
       <button class="modal-close" id="close-profile-modal-btn">×</button>
       <div class="chat-avatar profile-avatar" id="profile-avatar"></div>
       <h2 id="profile-name"></h2>
-      <button class="action-btn" id="rename-profile-btn" data-i18n="rename_contact">Rename Contact</button>
-      <button class="action-btn" id="reset-profile-btn" data-i18n="reset_name">Reset Name</button>
+      
+      <button class="action-btn" id="message-profile-btn" style="color: #00FFFF; display: none;">Send Message</button>
+      <button class="action-btn" id="add-profile-contact-btn">Add to Contacts</button>
+      
+      <button class="action-btn" id="rename-profile-btn">Rename Contact</button>
+      <button class="action-btn" id="reset-profile-btn">Reset Name</button>
     </div>
   </div>
 
   <div id="group-members-modal">
     <div class="modal-content">
-      <button class="modal-close" id="close-group-members-modal-btn">×</button>
-      <h2 id="group-members-title" data-i18n="members">Members</h2>
+      <button class="modal-close" id="close-group-members-modal-btn" style="left: 10px; right: auto;">×</button>
+      <button class="modal-menu-btn" id="group-menu-btn">⋮</button>
+      
+      <div class="group-header-settings">
+        <div class="chat-avatar profile-avatar" id="group-avatar-placeholder" title="Upload Avatar" style="cursor: pointer;">G</div>
+      </div>
+
+      <h2 id="group-members-title" data-i18n="members" style="margin-top: 10px;">Members</h2>
       <ul class="members-list" id="group-members-list"></ul>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div id="add-member-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-add-member-modal-btn">×</button>
+      <h2 data-i18n="add_member">Add Member</h2>
+      <input type="text" id="add-member-input" placeholder="Username" data-i18n-placeholder="username">
+      <button class="action-btn" id="save-add-member-btn" data-i18n="add">Add</button>
     </div>
   </div>
 

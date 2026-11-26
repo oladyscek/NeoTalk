@@ -13,7 +13,11 @@ const translations = {
     err_del_msg: 'Failed to delete message.', err_del_chat: 'Failed to delete chat', err_copy: 'Failed to copy messages',
     msg_too_long: 'Message is too long!', msg_slow_down: 'Too many messages! Please wait a second.', msg_server_err: 'Server error while sending.',
     notifs_enabled: 'Notifications enabled', no_permission: 'No permission', disconnected: 'Disconnected: Account opened in another tab/device.',
-    left_group: 'left the group', forwarded_from: 'Forwarded from: ', no_chats: 'No chats available'
+    left_group: 'left the group', forwarded_from: 'Forwarded from: ', no_chats: 'No chats available',
+    contacts: 'Contacts', add: 'Add', add_to_contacts: 'Add to Contacts', rename_group: 'Rename Group', change_avatar: 'Change Avatar',
+    no_contacts: 'No contacts found', contact_added: 'Contact added', contact_removed: 'Contact removed',
+    contact_add_err: 'User not found or already added', contact_del_err: 'Failed to remove contact',
+    send_message: 'Send Message'
   },
   ru: {
     conn_lost: 'СОЕДИНЕНИЕ ПОТЕРЯНО. ОЖИДАНИЕ СЕТИ...', name: 'Имя', password: 'Пароль', repeat_pass: 'Повторите пароль',
@@ -28,7 +32,11 @@ const translations = {
     err_del_msg: 'Не удалось удалить сообщение.', err_del_chat: 'Не удалось удалить чат', err_copy: 'Не удалось скопировать сообщения',
     msg_too_long: 'Сообщение слишком длинное!', msg_slow_down: 'Слишком много сообщений! Подождите секунду.', msg_server_err: 'Ошибка сервера при отправке.',
     notifs_enabled: 'Уведомления включены', no_permission: 'Нет разрешения', disconnected: 'Отключено: Аккаунт открыт в другой вкладке/устройстве.',
-    left_group: 'покинул(а) группу', forwarded_from: 'Переслано от: ', no_chats: 'Нет доступных чатов'
+    left_group: 'покинул(а) группу', forwarded_from: 'Переслано от: ', no_chats: 'Нет доступных чатов',
+    contacts: 'Контакты', add: 'Доб.', add_to_contacts: 'В контакты', rename_group: 'Переименовать', change_avatar: 'Сменить аватарку',
+    no_contacts: 'Контакты не найдены', contact_added: 'Контакт добавлен', contact_removed: 'Контакт удален',
+    contact_add_err: 'Пользователь не найден или уже добавлен', contact_del_err: 'Не удалось удалить контакт',
+    send_message: 'Написать'
   }
 };
 
@@ -56,6 +64,8 @@ let lastAppendedDate = null;
 const chatsById = {};
 let groupMembers = [];
 let customNamesMap = {}; 
+let contactsSet = new Set();
+let currentProfilePeerName = null;
 
 let selectedMsgIds = new Set();
 let touchTimer = null;
@@ -76,7 +86,6 @@ let pendingEditOldText = null;
 let pendingEditNewText = null;
 let pendingRenameId = null;
 let pendingRenameName = null;
-
 let forwardingMsgId = null;
 
 // Drag selection state
@@ -272,6 +281,7 @@ function connectWebSocket() {
           customNamesMap = p.data || {};
           if (currentChatId) renderHistory([]);
           send({type: 'getChats'});
+          if (contactsModal.style.display === 'flex') send({ type: 'getContacts' });
         }
         break;
       case 'getChatStatus':
@@ -291,27 +301,17 @@ function connectWebSocket() {
       case 'makeCustomNameStatus':
         if (p.answer === 'ok') {
           if (pendingRenameId && pendingRenameName) {
-            if (chatsById[pendingRenameId]) chatsById[pendingRenameId].chatName = pendingRenameName;
-            const targetName = chatsById[pendingRenameId].peerName;
-            if (targetName) customNamesMap[targetName] = pendingRenameName;
-            const chatLi = chatList.querySelector(`li[data-chat-id="${pendingRenameId}"]`);
-            if (chatLi) {
-              chatLi.querySelector('.chat-name').textContent = pendingRenameName;
-              chatLi.querySelector('.chat-avatar').textContent = pendingRenameName.charAt(0).toUpperCase();
+            const targetChat = chatsById[pendingRenameId];
+            if (targetChat) {
+              targetChat.chatName = pendingRenameName;
+              if (targetChat.peerName) customNamesMap[targetChat.peerName] = pendingRenameName;
             }
-            if (pendingRenameId === currentChatId) {
-              chatTitle.textContent = pendingRenameName;
-              headerAvatar.textContent = pendingRenameName.charAt(0).toUpperCase();
-              const profName = document.getElementById('profile-name');
-              if (profName) profName.textContent = pendingRenameName;
-              const profAva = document.getElementById('profile-avatar');
-              if (profAva) profAva.textContent = pendingRenameName.charAt(0).toUpperCase();
-            }
-            pendingRenameId = null; pendingRenameName = null;
             send({type: 'getChats'});
+            if (contactsModal.style.display === 'flex') send({ type: 'getContacts' });
           }
           renameModal.style.display = 'none';
           profileModal.style.display = 'none';
+          pendingRenameId = null; pendingRenameName = null;
         } else showError(t('err_rename'));
         break;
       case 'delCustomNameStatus':
@@ -414,6 +414,28 @@ function connectWebSocket() {
         }
         break;
       }
+      case 'makeContactStatus':
+        if (p.answer === 'ok') {
+          showToast(t('contact_added'));
+          contactsSet.add(currentProfilePeerName);
+          document.getElementById('add-profile-contact-btn').style.display = 'none';
+          send({ type: 'getContacts' });
+          document.getElementById('new-contact-input').value = '';
+        } else showError(t('contact_add_err'));
+        break;
+      case 'delContactStatus':
+        if (p.answer === 'ok') {
+          showToast(t('contact_removed'));
+          send({ type: 'getContacts' });
+        } else showError(t('contact_del_err'));
+        break;
+      case 'getContactsStatus':
+        if (p.answer === 'ok') {
+          const contacts = p.data || [];
+          contactsSet = new Set(contacts);
+          renderContacts(contacts);
+        }
+        break;
     }
   };
 }
@@ -475,6 +497,7 @@ const toLoginBtn     = document.getElementById('to-login');
 const settingsBtn        = document.getElementById('settings-btn');
 const backSettingsButton = document.getElementById('backSettingsButton');
 const settingsProfileBtn = document.getElementById('settingsProfileBtn');
+const settingsContactsBtn= document.getElementById('settingsContactsBtn');
 const settingsLogoutBtn  = document.getElementById('settingsLogoutBtn');
 const settingsLangBtn    = document.getElementById('settingsLangBtn');
 const settingsNotifBtn   = document.getElementById('settingsNotifBtn');
@@ -508,14 +531,38 @@ const msgActionsBtn = document.getElementById('msg-actions-btn');
 const msgPopover    = document.getElementById('msg-popover');
 const dotsMenu      = document.getElementById('dots-menu');
 
+const contactsModal = document.getElementById('contacts-modal');
+const closeContactsModalBtn = document.getElementById('close-contacts-modal-btn');
+const contactsList = document.getElementById('contacts-list');
+const newContactInput = document.getElementById('new-contact-input');
+const addContactBtn = document.getElementById('add-contact-btn');
+
+const forwardModal = document.getElementById('forward-modal');
+const closeForwardModalBtn = document.getElementById('close-forward-modal-btn');
+const forwardChatList = document.getElementById('forward-chat-list');
+
 const chatContextModal = document.getElementById('chat-context-modal');
 const closeChatModalBtn = document.getElementById('close-chat-modal-btn');
 const chatModalActionBtn = document.getElementById('chat-modal-action-btn');
 
 const profileModal = document.getElementById('profile-modal');
 const closeProfileModalBtn = document.getElementById('close-profile-modal-btn');
+const addProfileContactBtn = document.getElementById('add-profile-contact-btn');
+const messageProfileBtn = document.getElementById('message-profile-btn');
+
 const groupMembersModal = document.getElementById('group-members-modal');
 const closeGroupMembersModalBtn = document.getElementById('close-group-members-modal-btn');
+const groupMenuBtn = document.getElementById('group-menu-btn');
+const groupMenuDropdown = document.getElementById('group-menu-dropdown');
+const groupOptAdd = document.getElementById('group-opt-add');
+const groupOptRename = document.getElementById('group-opt-rename');
+const groupOptAvatar = document.getElementById('group-opt-avatar');
+const groupAvatarPlaceholder = document.getElementById('group-avatar-placeholder');
+
+const addMemberModal = document.getElementById('add-member-modal');
+const closeAddMemberModalBtn = document.getElementById('close-add-member-modal-btn');
+const addMemberInput = document.getElementById('add-member-input');
+const saveAddMemberBtn = document.getElementById('save-add-member-btn');
 
 const renameModal = document.getElementById('rename-modal');
 const renameInput = document.getElementById('rename-input');
@@ -531,10 +578,6 @@ const errorModal = document.getElementById('error-modal');
 const errorText = document.getElementById('error-text');
 const okErrorBtn = document.getElementById('ok-error-btn');
 const closeErrorModalBtn = document.getElementById('close-error-modal-btn');
-
-const forwardModal = document.getElementById('forward-modal');
-const closeForwardModalBtn = document.getElementById('close-forward-modal-btn');
-const forwardChatList = document.getElementById('forward-chat-list');
 
 let renameTargetId = null;
 
@@ -600,18 +643,77 @@ cancelChatBtn.onclick = () => history.back();
 cancelGroupBtn.onclick = () => history.back();
 mobileBackBtn.onclick = (e) => { e.stopPropagation(); closeActiveChat(); };
 
+// === SETTINGS & CONTACTS ===
+settingsContactsBtn.onclick = () => {
+  send({ type: 'getContacts' });
+  contactsModal.style.display = 'flex';
+};
+
+closeContactsModalBtn.onclick = () => contactsModal.style.display = 'none';
+contactsModal.onclick = (e) => { if (e.target === contactsModal) contactsModal.style.display = 'none'; };
+
+addContactBtn.onclick = () => {
+  const name = newContactInput.value.trim();
+  if (name) send({ type: 'createContact', name });
+};
+newContactInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addContactBtn.click(); });
+
+addProfileContactBtn.onclick = () => {
+  if (currentProfilePeerName) {
+    send({ type: 'createContact', name: currentProfilePeerName });
+  }
+};
+
+messageProfileBtn.onclick = () => {
+  if (currentProfilePeerName) {
+    send({ type: 'createChat', to: currentProfilePeerName, isGroup: false });
+    profileModal.style.display = 'none';
+  }
+};
+
+// ================== PROFILE LOGIC ==================
+function openProfile(peerName) {
+  currentProfilePeerName = peerName;
+  document.getElementById('profile-name').textContent = getDisplayName(peerName);
+  document.getElementById('profile-avatar').textContent = getDisplayName(peerName).charAt(0).toUpperCase();
+
+  const chat = Object.values(chatsById).find(x => !x.isGroup && x.peerName === peerName);
+
+  const renameBtn = document.getElementById('rename-profile-btn');
+  const resetBtn = document.getElementById('reset-profile-btn');
+
+  if (chat) {
+    renameTargetId = chat.id;
+    renameBtn.style.display = 'block';
+    resetBtn.style.display = 'block';
+    messageProfileBtn.style.display = 'none';
+  } else {
+    renameTargetId = null;
+    renameBtn.style.display = 'none';
+    resetBtn.style.display = 'none';
+    messageProfileBtn.style.display = 'block';
+  }
+
+  if (contactsSet.has(peerName)) {
+    addProfileContactBtn.style.display = 'none';
+  } else {
+    addProfileContactBtn.style.display = 'block';
+  }
+
+  profileModal.style.display = 'flex';
+}
+
 chatHeaderInfo.onclick = () => {
   if (!currentChatId) return;
   const chat = chatsById[currentChatId];
   if (!chat) return;
   if (chat.isGroup) {
     document.getElementById('group-members-title').textContent = chat.chatName;
+    if (groupAvatarPlaceholder) groupAvatarPlaceholder.textContent = chat.chatName.charAt(0).toUpperCase();
     groupMembersModal.style.display = 'flex';
     send({ type: 'getGroupMembers', chatId: currentChatId });
   } else {
-    document.getElementById('profile-name').textContent = chat.chatName;
-    document.getElementById('profile-avatar').textContent = chat.chatName.charAt(0).toUpperCase();
-    profileModal.style.display = 'flex';
+    openProfile(chat.peerName);
   }
 };
 
@@ -620,9 +722,8 @@ profileModal.onclick = (e) => { if (e.target === profileModal) profileModal.styl
 closeGroupMembersModalBtn.onclick = () => groupMembersModal.style.display = 'none';
 groupMembersModal.onclick = (e) => { if (e.target === groupMembersModal) groupMembersModal.style.display = 'none'; };
 
-// === CUSTOM NAME ===
 document.getElementById('rename-profile-btn').onclick = () => {
-  renameTargetId = currentChatId;
+  if (!renameTargetId) return;
   renameInput.value = document.getElementById('profile-name').textContent;
   profileModal.style.display = 'none';
   renameModal.style.display = 'flex';
@@ -630,7 +731,8 @@ document.getElementById('rename-profile-btn').onclick = () => {
 };
 
 document.getElementById('reset-profile-btn').onclick = () => {
-  send({ type: 'delCustomName', chatId: currentChatId });
+  if (!renameTargetId) return;
+  send({ type: 'delCustomName', chatId: renameTargetId });
 };
 
 closeRenameModalBtn.onclick = () => renameModal.style.display = 'none';
@@ -646,6 +748,59 @@ saveRenameBtn.onclick = () => {
 };
 
 renameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveRenameBtn.click(); });
+
+// === GROUP ===
+groupMenuBtn.onclick = (e) => {
+  e.stopPropagation();
+  if (groupMenuDropdown.classList.contains('open')) {
+    groupMenuDropdown.classList.remove('open');
+  } else {
+    const rect = groupMenuBtn.getBoundingClientRect();
+    groupMenuDropdown.classList.add('open');
+    groupMenuDropdown.style.left = (rect.right - 150) + 'px';
+    groupMenuDropdown.style.top = rect.bottom + 5 + 'px';
+  }
+};
+
+document.addEventListener('click', (e) => {
+  if (groupMenuDropdown.classList.contains('open') && !groupMenuDropdown.contains(e.target) && e.target !== groupMenuBtn) {
+    groupMenuDropdown.classList.remove('open');
+  }
+});
+
+groupOptAdd.onclick = () => {
+  groupMenuDropdown.classList.remove('open');
+  addMemberModal.style.display = 'flex';
+  addMemberInput.value = '';
+  addMemberInput.focus();
+};
+
+groupOptRename.onclick = () => {
+  groupMenuDropdown.classList.remove('open');
+  renameTargetId = currentChatId;
+  renameInput.value = chatsById[currentChatId].chatName;
+  groupMembersModal.style.display = 'none';
+  renameModal.style.display = 'flex';
+  renameInput.focus();
+};
+
+groupOptAvatar.onclick = () => {
+  groupMenuDropdown.classList.remove('open');
+  showToast(t('coming_soon'));
+};
+
+groupAvatarPlaceholder.onclick = () => showToast(t('coming_soon'));
+
+closeAddMemberModalBtn.onclick = () => addMemberModal.style.display = 'none';
+addMemberModal.onclick = (e) => { if (e.target === addMemberModal) addMemberModal.style.display = 'none'; };
+
+saveAddMemberBtn.onclick = () => {
+  const name = addMemberInput.value.trim();
+  if (name) {
+    showToast(t('coming_soon'));
+    addMemberModal.style.display = 'none';
+  }
+};
 
 // ================== EDIT MESSAGE ==================
 function startEditMessage(msgId) {
@@ -776,19 +931,89 @@ createGroupBtn.onclick = () => {
 function renderGroupMembers(members) {
   const list = document.getElementById('group-members-list');
   list.innerHTML = '';
+  
   if (!members || members.length === 0) {
     list.innerHTML = `<li style="justify-content:center; border:none;">${t('no_members')}</li>`;
     return;
   }
+
   members.forEach(m => {
     const li = document.createElement('li');
+    li.className = 'member-item';
+    
+    const leftSide = document.createElement('div');
+    leftSide.style.display = 'flex';
+    leftSide.style.alignItems = 'center';
+    leftSide.style.gap = '10px';
+
     const avatar = document.createElement('div');
     avatar.className = 'chat-avatar';
     const displayName = getDisplayName(m);
     avatar.textContent = displayName.charAt(0).toUpperCase();
+    
     const name = document.createElement('span');
     name.textContent = displayName;
-    li.appendChild(avatar); li.appendChild(name); list.appendChild(li);
+    
+    leftSide.appendChild(avatar);
+    leftSide.appendChild(name);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'remove-member-btn';
+    delBtn.textContent = '×';
+    delBtn.onclick = () => showToast(t('coming_soon'));
+
+    li.appendChild(leftSide);
+    li.appendChild(delBtn);
+    list.appendChild(li);
+  });
+}
+
+// ================== CONTACTS RENDERING ==================
+function renderContacts(contacts) {
+  contactsList.innerHTML = '';
+  if (!contacts || contacts.length === 0) {
+    contactsList.innerHTML = `<li class="member-item" style="justify-content:center; border:none;">${t('no_contacts')}</li>`;
+    return;
+  }
+  
+  contacts.forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'member-item';
+    li.style.cursor = 'pointer';
+
+    const leftSide = document.createElement('div');
+    leftSide.style.display = 'flex';
+    leftSide.style.alignItems = 'center';
+    leftSide.style.gap = '12px';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'chat-avatar';
+    const displayName = getDisplayName(c);
+    avatar.textContent = displayName.charAt(0).toUpperCase();
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = displayName;
+    nameSpan.style.fontSize = '10px';
+
+    leftSide.appendChild(avatar);
+    leftSide.appendChild(nameSpan);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'remove-member-btn';
+    delBtn.textContent = '×';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      send({ type: 'delContact', name: c });
+    };
+
+    li.appendChild(leftSide);
+    li.appendChild(delBtn);
+
+    li.onclick = () => {
+      openProfile(c);
+    };
+
+    contactsList.appendChild(li);
   });
 }
 
@@ -1122,12 +1347,12 @@ sendForm.onsubmit = (e) => {
     executeSend(msgObj);
     const li = addMessage(myName, text, null, timeStr);
     li.classList.add('pending');
-    updateChatPreview(currentChatId, text, myName, false, timeStr, false);
+    updateChatPreview(currentChatId, text, myName, false, timeStr, null);
   } else {
     outbox.push(msgObj);
     const li = addMessage(myName, text, null, timeStr);
     li.classList.add('pending');
-    updateChatPreview(currentChatId, text, myName, false, timeStr, false);
+    updateChatPreview(currentChatId, text, myName, false, timeStr, null);
   }
   sendInput.value = '';
   sendInput.focus();
@@ -1294,7 +1519,7 @@ function openMsgPopover(li, x, y) {
   const isOwn = li.dataset.sender === myName;
   msgPopover.innerHTML = '';
 
-    if (isOwn) {
+  if (isOwn) {
     const hasForwardedTag = li.querySelector('.msg-forwarded') !== null;
     if (!hasForwardedTag) {
       const editBtn = document.createElement('button');
@@ -1410,7 +1635,9 @@ document.addEventListener('keydown', (e) => {
     else if (dotsMenu.classList.contains('open')) closeDotsMenu();
     else if (chatContextModal.style.display === 'flex') chatContextModal.style.display = 'none';
     else if (profileModal.style.display === 'flex') profileModal.style.display = 'none';
-    else if (groupMembersModal.style.display === 'flex') groupMembersModal.style.display = 'none';
+    else if (groupMembersModal.style.display === 'flex') { groupMembersModal.style.display = 'none'; groupMenuDropdown.classList.remove('open'); }
+    else if (contactsModal.style.display === 'flex') contactsModal.style.display = 'none';
+    else if (addMemberModal.style.display === 'flex') addMemberModal.style.display = 'none';
     else if (renameModal.style.display === 'flex') renameModal.style.display = 'none';
     else if (editModal.style.display === 'flex') { editModal.style.display = 'none'; clearPendingEdit(); }
     else if (forwardModal.style.display === 'flex') forwardModal.style.display = 'none';

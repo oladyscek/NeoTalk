@@ -605,3 +605,59 @@ func forwardMsgWS(c *Client, req *Packet) {
 		}
 	}
 }
+
+func createContactWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "makeContactStatus", Answer: "not logged in"})
+		return
+	}
+
+	ok := makeContact(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "makeContactStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "makeContactStatus", Answer: "ok"})
+}
+
+func delContactWS(c *Client, req *Packet) {
+	if c.Name == "" {
+		c.send(Packet{Type: "delContactStatus", Answer: "not logged in"})
+		return
+	}
+
+	ok := delContact(c.Name, req)
+
+	if !ok {
+		c.send(Packet{Type: "delContactStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "delContactStatus", Answer: "ok"})
+}
+
+func getContactsWS(c *Client) {
+	if c.Name == "" {
+		c.send(Packet{Type: "getContactsStatus", Answer: "not logged in"})
+		return
+	}
+
+	list, ok := getContacts(c.Name)
+
+	if !ok {
+		c.send(Packet{Type: "getContactsStatus", Answer: "failed"})
+		return
+	}
+
+	data, err := json.Marshal(list)
+
+	if err != nil {
+		log.Println(err)
+		c.send(Packet{Type: "getContactsStatus", Answer: "failed"})
+		return
+	}
+
+	c.send(Packet{Type: "getContactsStatus", Answer: "ok", Data: data})
+}

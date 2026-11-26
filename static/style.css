@@ -116,7 +116,6 @@ button:active { transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px
 .messages { flex: 1; list-style: none; padding: 15px; margin: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
 .messages::before { content: ''; margin-top: auto; }
 
-/* Message structure */
 .messages li.msg-row {
   max-width: none; width: 100%; padding: 0; border: none; background: transparent;
   box-shadow: none; display: flex; flex-direction: row; transition: none; cursor: pointer;
@@ -132,11 +131,7 @@ button:active { transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px
   flex-shrink: 0; box-shadow: 0 0 5px #8a2be2; margin-bottom: 5px;
 }
 
-.msg-content-wrapper {
-  display: flex;
-  flex-direction: column;
-  max-width: 60%;
-}
+.msg-content-wrapper { display: flex; flex-direction: column; max-width: 60%; }
 
 .msg-bubble {
   padding: 8px 12px; border: 2px solid #2e0777; background: #1A0B2E;
@@ -149,14 +144,8 @@ button:active { transform: translateY(4px); box-shadow: 0 0 0 #1a0b2e, 0 2px 5px
 .messages li.msg-row.selected .msg-bubble { background: #2e0777; border-color: #00FFFF; box-shadow: 0 0 10px #00FFFF; }
 .messages li.msg-row.pending .msg-bubble { opacity: 0.5; border-style: dashed; box-shadow: none; }
 
-/* Sender Name & Forwarded tag */
-.msg-sender {
-  font-size: 9px; color: #00FFFF; font-weight: bold; margin-bottom: 4px; text-shadow: 0 0 3px #00FFFF;
-}
-.msg-forwarded {
-  font-size: 8px; color: #b088ff; margin-bottom: 6px; font-style: italic; opacity: 0.9;
-}
-
+.msg-sender { font-size: 9px; color: #00FFFF; font-weight: bold; margin-bottom: 4px; text-shadow: 0 0 3px #00FFFF; }
+.msg-forwarded { font-size: 8px; color: #b088ff; margin-bottom: 6px; font-style: italic; opacity: 0.9; }
 .msg-text { color: #E0D0FF; }
 .msg-time { font-size: 8px; color: #8a2be2; opacity: 0.6; margin-top: 6px; align-self: flex-end; display: flex; align-items: center; gap: 4px; }
 .msg-time .ticks { color: #8a2be2; opacity: 0.8; }
@@ -204,7 +193,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 /* ================== MODALS ================== */
 #msg-actions-btn { display: none; font-size: 20px; padding: 5px 15px; }
 
-#chat-context-modal, #profile-modal, #group-members-modal, #rename-modal, #error-modal, #edit-modal, #forward-modal {
+#chat-context-modal, #profile-modal, #group-members-modal, #rename-modal, #error-modal, #edit-modal, #forward-modal, #contacts-modal, #add-member-modal {
   display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(13, 2, 33, 0.75); z-index: 1000; justify-content: center; align-items: center;
 }
@@ -215,18 +204,48 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 }
 .modal-content h2 { color: #E0D0FF; font-size: 16px; margin: 0 0 10px 0; text-shadow: 0 0 8px #8a2be2; }
 .modal-content .action-btn { font-size: 20px; padding: 8px 0; width: 100%; }
-.modal-close {
-  position: absolute; top: 10px; right: 10px; font-size: 16px; padding: 0; width: 30px; height: 30px;
+
+.modal-close, .modal-menu-btn {
+  position: absolute; top: 10px; font-size: 16px; padding: 0; width: 30px; height: 30px;
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 2px 0 #1a0b2e, 0 4px 5px rgba(0,0,0,0.5); z-index: 10;
+  background: none; border: none; color: #E0D0FF;
 }
-.modal-close:active { transform: translateY(2px); box-shadow: none; }
+.modal-close { right: 10px; }
+.modal-menu-btn { right: 10px; }
+.modal-close:active, .modal-menu-btn:active { transform: translateY(2px); box-shadow: none; }
+
 .profile-avatar { width: 100px; height: 100px; font-size: 40px; margin-bottom: 10px; }
-.members-list { list-style: none; padding: 0; margin: 0; width: 100%; max-height: 50vh; overflow-y: auto; text-align: left; }
-.members-list li { padding: 10px; border-bottom: 1px solid #2e0777; font-size: 12px; display: flex; align-items: center; gap: 10px; color: #E0D0FF; }
-.members-list li:last-child { border-bottom: none; }
+
+/* Contacts List Styles (Like chat list) */
+.members-list { list-style: none; padding: 0; margin: 0; width: 100%; max-height: 50vh; overflow-y: auto; text-align: left; background: #0D0221; border: 2px solid #2e0777; }
+.member-item { 
+  display: flex; justify-content: space-between; align-items: center; width: 100%; 
+  padding: 12px 15px; border-bottom: 1px solid #2e0777; font-size: 10px; 
+  color: #E0D0FF !important; /* Force white text */
+  background: #1A0B2E;
+  transition: background 0.15s;
+}
+.member-item:hover { background: #2e0777; }
+.member-item:last-child { border-bottom: none; }
+.remove-member-btn { background: none; border: none; color: #ff5555; font-size: 16px; padding: 5px; cursor: pointer; box-shadow: none; }
+.remove-member-btn:hover { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
+
+/* FIX for input groups */
+.add-input-group { 
+  display: flex; gap: 10px; width: 100%; margin-top: 15px; align-items: stretch;
+}
+.add-input-group input { 
+  flex: 1; min-width: 0; margin: 0; 
+  font-family: 'Press Start 2P', monospace !important;
+  font-size: 12px; padding: 10px; text-align: left;
+}
+.add-input-group button { 
+  width: auto !important; flex-shrink: 0; padding: 0 15px !important; font-size: 14px !important; margin: 0 !important; 
+}
+
 .modal-content input {
-  font-family: 'Press Start 2P', monospace; background-color: #0D0221; color: #E0D0FF;
+  font-family: 'Press Start 2P', monospace !important; background-color: #0D0221; color: #E0D0FF;
   border: 2px solid #2e0777; padding: 10px; width: 100%; text-align: center; font-size: 14px;
 }
 .modal-content input:focus { outline: none; border-color: #8a2be2; }
@@ -263,7 +282,6 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
   .messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
 
   .msg-content-wrapper { max-width: 85%; }
-  
   .messages li.msg-row.own .msg-avatar { display: none; }
 
   .send { padding: 10px; gap: 8px; background: rgba(13, 2, 33, 0.9); flex-shrink: 0; }
@@ -278,7 +296,16 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; d
 
   #group-chips-container { max-width: 100%; }
 
-  #profile-modal { background: #0D0221; }
-  #profile-modal .modal-content { width: 100%; height: 100%; max-width: 100%; border: none; box-shadow: none; border-radius: 0; padding: 20px; justify-content: center; }
-  #profile-modal .modal-close { top: 20px; right: 20px; width: 40px; height: 40px; font-size: 20px; }
+  /* Mobile Full Screen Modals */
+  #profile-modal, #group-members-modal, #contacts-modal { background: #0D0221; }
+  #profile-modal .modal-content, #group-members-modal .modal-content, #contacts-modal .modal-content {
+    width: 100%; height: 100%; max-width: 100%; border: none; box-shadow: none; border-radius: 0;
+    padding: 20px; padding-top: 60px; justify-content: flex-start;
+  }
+  #profile-modal .modal-close, #group-members-modal .modal-close, #contacts-modal .modal-close,
+  #profile-modal .modal-menu-btn, #group-members-modal .modal-menu-btn, #contacts-modal .modal-menu-btn {
+    top: 20px; width: 40px; height: 40px; font-size: 20px;
+  }
+  #group-members-modal .modal-close { left: 20px; }
+  #group-members-modal .modal-menu-btn { right: 20px; }
 }

@@ -124,6 +124,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			delCustomNameWS(cl, &req)
 		case "savePushSub":
 			savePushSubWS(cl, &req)
+		case "createContact":
+			createContactWS(cl, &req)
+		case "delContact":
+			delContactWS(cl, &req)
+		case "getContacts":
+			getContactsWS(cl)
 		default:
 			log.Println("unknown type:", req.Type)
 		}
