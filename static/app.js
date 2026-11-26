@@ -999,7 +999,7 @@ function createMessageEl(sender, text, msgId, timeStr, isRead, isEdited, forward
   const isGroup = chat ? chat.isGroup : false;
   const displaySender = getDisplayName(sender);
 
-  if (isGroup && sender !== myName) {
+  if (isGroup) {
     const avatarEl = document.createElement('div');
     avatarEl.className = 'msg-avatar';
     avatarEl.textContent = displaySender.charAt(0).toUpperCase();
@@ -1294,11 +1294,14 @@ function openMsgPopover(li, x, y) {
   const isOwn = li.dataset.sender === myName;
   msgPopover.innerHTML = '';
 
-  if (isOwn) {
-    const editBtn = document.createElement('button');
-    editBtn.textContent = t('edit');
-    editBtn.onclick = (ev) => { ev.stopPropagation(); startEditMessage(msgId); closeMsgPopover(); };
-    msgPopover.appendChild(editBtn);
+    if (isOwn) {
+    const hasForwardedTag = li.querySelector('.msg-forwarded') !== null;
+    if (!hasForwardedTag) {
+      const editBtn = document.createElement('button');
+      editBtn.textContent = t('edit');
+      editBtn.onclick = (ev) => { ev.stopPropagation(); startEditMessage(msgId); closeMsgPopover(); };
+      msgPopover.appendChild(editBtn);
+    }
   }
   const copyBtn = document.createElement('button');
   copyBtn.textContent = t('copy');
